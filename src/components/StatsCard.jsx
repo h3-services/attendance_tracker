@@ -65,34 +65,14 @@ const StatsCard = ({ totalSeconds, sessionCount }) => {
             </h3>
 
             {/* Flip Clock Display */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+                <WhiteFlipUnit value={sessionCount} label="SECTION" />
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--border-color)', marginTop: '-1.5rem' }}>:</div>
                 <WhiteFlipUnit value={h} label="HRS" />
                 <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--border-color)', marginTop: '-1.5rem' }}>:</div>
                 <WhiteFlipUnit value={m} label="MIN" />
                 <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--border-color)', marginTop: '-1.5rem' }}>:</div>
                 <WhiteFlipUnit value={s} label="SEC" />
-            </div>
-
-            {/* Footer Stats */}
-            <div style={{
-                borderTop: '1px solid var(--bg-color)',
-                paddingTop: '1rem',
-                display: 'flex',
-                justifyContent: 'center'
-            }}>
-                <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    padding: '0.5rem 1rem',
-                    background: '#f8fafc',
-                    borderRadius: '20px',
-                    border: '1px solid var(--secondary-color)'
-                }}>
-                    <span style={{ color: 'var(--success-color)', fontSize: '1.1rem' }}>●</span>
-                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{sessionCount}</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Sessions Data</span>
-                </div>
             </div>
 
         </div>
