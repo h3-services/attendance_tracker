@@ -40,9 +40,29 @@ const normalizeData = (data) => {
   }));
 };
 
-export const fetchData = async () => {
+// Helper to clean and construct URL params
+const buildParams = (data) => {
+  const params = new URLSearchParams();
+  for (const key in data) {
+    if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+      params.append(key, data[key]);
+    }
+  }
+  return params;
+};
+
+export const fetchData = async (options = {}) => {
   try {
-    const response = await fetch(getUrl('read'));
+    const params = buildParams({
+      action: 'read',
+      ...options
+    });
+
+    // Construct URL with params
+    const separator = API_URL.includes('?') ? '&' : '?';
+    const finalUrl = `${API_URL}${separator}${params.toString()}`;
+
+    const response = await fetch(finalUrl);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const rawData = await handleResponse(response);
     return normalizeData(rawData);

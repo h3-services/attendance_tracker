@@ -40,25 +40,36 @@ function handleRequest(e) {
     var action = requestData.action;
 
     // ==========================================
-    // READ (Default)
+    // READ (With Filtering)
     // ==========================================
     if (!action || action === 'read') {
       // Use getDisplayValues() to get the formatted strings (e.g. "2026-01-06", "14:30")
-      // This prevents UTC timezone shifts in the API response.
       var data = sheet.getDataRange().getDisplayValues();
-      var headers = data[0];
-      var rows = [];
+      var rows = []; // Start empty
       
-      // Convert array of arrays to array of objects
-      for (var i = 1; i < data.length; i++) {
+      // Filter Parameters
+      var filterDate = requestData.date;        // e.g. "2026-01-06"
+      var filterUser = requestData.userName;    // e.g. "Jeevith"
+
+      // Iterate BACKWARDS to find recent matches faster
+      // Check limits if needed (e.g. max 50 rows) to prevent massive payloads
+      for (var i = data.length - 1; i >= 1; i--) {
         var row = data[i];
+        
+        // Strict Filter: Both Date and User must match if provided
+        var rowDate = row[1];     // Column B
+        var rowUser = row[2];     // Column C
+        
+         // If filters are provided, check them
+        if (filterDate && rowDate !== filterDate) continue;
+        if (filterUser && rowUser !== filterUser) continue;
+
         var obj = {};
         // Map row by index to specific keys for frontend
-        // Assuming Order: ID, Date, SessionNo, UserName, Start, End, Duration, Desc, Project, Category, Status, ApprState, ApprBy
         obj.recordId = row[0];
         obj.date = row[1];
-        obj.userName = row[2]; // Column C is Name
-        obj.sessionNo = row[3]; // Column D is Session
+        obj.userName = row[2]; 
+        obj.sessionNo = row[3]; 
         obj.startTime = row[4];
         obj.endTime = row[5];
         obj.duration = row[6];
@@ -69,12 +80,18 @@ function handleRequest(e) {
         obj.approvedState = row[11];
         obj.approvedBy = row[12];
         
-        // Helper: preserve original row index if needed
         rows.push(obj);
+
+        // Optional: Soft limit to prevent timeouts on large valid ranges
+        // if (rows.length >= 100) break; 
       }
       
-      // Return newest first
-      return responseJSON(rows.reverse());
+      // Since we iterated backwards, the list is Newest -> Oldest. 
+      // If frontend expects Oldest -> Newest (1..2..3), reverse it?
+      // Actually frontend history usually shows newest on top. 
+      // Let's return as is (Newest First) which matches previous behavior.
+      
+      return responseJSON(rows);
     }
 
     // ==========================================
