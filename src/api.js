@@ -1,7 +1,4 @@
-
-// Update this URL with your NEW deployed Web App URL (must end in /exec)
-// Example: "https://script.google.com/macros/s/AKfycbx.../exec"
-const API_URL = "https://script.google.com/macros/s/AKfycbzYyn2KJZICNrgDSCQpBFOH2Xi5cEylyd8aKExHk8i_zZ5Ndu6nJ2esLtVWDTS_0TrCrg/exec";
+const API_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
 
 const handleResponse = async (response) => {
   const text = await response.text();
@@ -24,9 +21,6 @@ const getUrl = (action) => {
   const separator = API_URL.includes('?') ? '&' : '?';
   return `${API_URL}${separator}action=${action}`;
 };
-
-// Map Sheet Headers to App Keys
-// Map Sheet Headers to App Keys
 const normalizeData = (data) => {
   if (!Array.isArray(data)) return [];
   return data.map(item => ({

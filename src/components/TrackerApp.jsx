@@ -2,10 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from './DashboardLayout';
 import TimerCard from './TimerCard';
-import SessionHistory from './SessionHistory';
+import HistoryGrid from './HistoryGrid';
 import EndSessionModal from './EndSessionModal';
+import EditSessionModal from './EditSessionModal';
 import StatsCard from './StatsCard';
 import { fetchData, createRecord, updateRecord } from '../api';
+
+const CURRENT_USER = 'Jeevith';
 
 // Helper to parse "1 hr 30 mins 20 sec"
 const parseDurationString = (input) => {
@@ -59,6 +62,10 @@ const TrackerApp = () => {
     const [isEndModalOpen, setIsEndModalOpen] = useState(false);
     const [todayStats, setTodayStats] = useState({ seconds: 0, count: 0 });
 
+    // Edit Modal State
+    const [editSession, setEditSession] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
     // 1. Initial Load & Calculate Stats
     useEffect(() => {
         loadData();
@@ -94,7 +101,32 @@ const TrackerApp = () => {
         setLoading(true);
         try {
             const data = await fetchData();
-            setSessions(data);
+
+            // Get today's components
+            const today = new Date();
+            const tYear = today.getFullYear();
+            const tMonth = today.getMonth();
+            const tDay = today.getDate();
+
+            // Filter: Current User AND Matches Today's Date (Component Check)
+            const myTodaySessions = data.filter(s => {
+                if (s.userName !== CURRENT_USER) return false;
+                if (!s.date) return false;
+
+                // Create date object from record
+                const recDate = new Date(s.date);
+                if (isNaN(recDate.getTime())) return false; // Invalid date
+
+                // Compare Y/M/D
+                return recDate.getFullYear() === tYear &&
+                    recDate.getMonth() === tMonth &&
+                    recDate.getDate() === tDay;
+            });
+
+            console.log("All Data:", data.length);
+            console.log("Filtered Data:", myTodaySessions.length);
+
+            setSessions(myTodaySessions);
         } catch (e) {
             console.error("Failed to load", e);
         } finally {
@@ -116,7 +148,7 @@ const TrackerApp = () => {
 
         const newLocalSession = {
             date: dateStr,
-            userName: 'Jeevith',
+            userName: CURRENT_USER,
             sessionNo: nextSessionNo.toString(),
             startTime: timeStr,
             startTimeFull: now.toISOString(), // Store full ISO
@@ -197,6 +229,36 @@ const TrackerApp = () => {
         );
     }
 
+
+    // 6. Action Handlers
+    const handleEditClick = (session) => {
+        setEditSession(session);
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateConfirm = async (updatedData) => {
+        try {
+            await updateRecord(updatedData);
+            setEditSession(null);
+            setIsEditModalOpen(false);
+            // Refresh
+            setTimeout(loadData, 1000);
+        } catch (e) {
+            alert("Error updating: " + e.message);
+        }
+    };
+
+    const handleDeleteConfirm = async (recordId) => {
+        try {
+            await deleteRecord(recordId);
+            setEditSession(null);
+            setIsEditModalOpen(false);
+            setTimeout(loadData, 1000);
+        } catch (e) {
+            alert("Error deleting: " + e.message);
+        }
+    };
+
     return (
         <DashboardLayout>
             <div className="fade-in-entry">
@@ -213,14 +275,25 @@ const TrackerApp = () => {
                     />
                 </div>
 
-                {/* History List */}
-                <SessionHistory sessions={sessions} />
+                {/* History Grid */}
+                <HistoryGrid
+                    sessions={sessions}
+                    onEdit={handleEditClick}
+                />
             </div>
 
             <EndSessionModal
                 isOpen={isEndModalOpen}
                 onClose={() => setIsEndModalOpen(false)}
                 onSubmit={handleFinishSession}
+            />
+
+            <EditSessionModal
+                isOpen={isEditModalOpen}
+                session={editSession}
+                onClose={() => setIsEditModalOpen(false)}
+                onSave={handleUpdateConfirm}
+                onDelete={handleDeleteConfirm}
             />
         </DashboardLayout>
     );

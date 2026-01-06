@@ -2,7 +2,42 @@
 import React from 'react';
 
 const SessionHistory = ({ sessions }) => {
-    if (!sessions || sessions.length === 0) return null;
+
+    if (!sessions || sessions.length === 0) {
+        return (
+            <div style={{
+                backgroundColor: 'var(--card-bg)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-sm)',
+                padding: '4rem 2rem',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)',
+                marginTop: '2rem'
+            }}>
+                <div style={{
+                    width: '64px', height: '64px', borderRadius: '50%',
+                    background: 'var(--bg-color)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    marginBottom: '1rem'
+                }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.1rem' }}>No Sessions Yet</h3>
+                <p style={{ margin: 0, fontSize: '0.95rem', opacity: 0.8 }}>Start tracking time above to see your history.</p>
+            </div>
+        );
+    }
 
     // Filter out any empty rows if necessary, or sort by ID desc
     const sortedSessions = [...sessions].sort((a, b) => (b.recordId || 0) - (a.recordId || 0));
@@ -12,7 +47,8 @@ const SessionHistory = ({ sessions }) => {
             backgroundColor: 'var(--card-bg)',
             borderRadius: 'var(--radius-lg)',
             boxShadow: 'var(--shadow-md)',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            marginTop: '2rem'
         }}>
             <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Session History</h3>
@@ -41,7 +77,7 @@ const SessionHistory = ({ sessions }) => {
                                     {session.startTime} - {session.endTime || '...'}
                                 </td>
                                 <td style={{ padding: '1rem', fontWeight: 500 }}>
-                                    {session.duration ? `${Math.round(session.duration)}m` : '-'}
+                                    {session.duration || '-'}
                                 </td>
                                 <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
                                     {session.workDescription || (
