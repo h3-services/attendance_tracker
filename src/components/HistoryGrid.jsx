@@ -15,28 +15,31 @@ const HistoryGrid = ({ sessions, onEdit }) => {
             headerName: 'Session',
             width: 90,
             sortable: true,
-            filter: true
+            sort: 'asc', // Default Sort 1, 2, 3, 4
+            comparator: (valueA, valueB) => {
+                return (parseInt(valueA) || 0) - (parseInt(valueB) || 0);
+            },
+            // filter removed
+            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' }
         },
         {
             field: 'startTime',
             headerName: 'Start Time',
             width: 110,
             sortable: true,
+            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
             valueFormatter: (p) => {
                 if (!p.value) return '-';
-                // Handle ISO Date Strings (1899-12-30T...)
                 let d;
                 if (String(p.value).includes('T')) {
                     d = new Date(p.value);
                 } else {
-                    // Handle "14:30" string by creating a dummy date
                     const [h, m] = String(p.value).split(':');
                     d = new Date();
                     d.setHours(h || 0, m || 0);
                 }
-
                 if (!isNaN(d.getTime())) {
-                    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }); // 2:30 PM
+                    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
                 }
                 return p.value;
             }
@@ -45,6 +48,7 @@ const HistoryGrid = ({ sessions, onEdit }) => {
             field: 'endTime',
             headerName: 'End Time',
             width: 110,
+            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
             valueFormatter: (p) => {
                 if (!p.value) return '...';
                 let d;
@@ -55,7 +59,6 @@ const HistoryGrid = ({ sessions, onEdit }) => {
                     d = new Date();
                     d.setHours(h || 0, m || 0);
                 }
-
                 if (!isNaN(d.getTime())) {
                     return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
                 }
@@ -66,6 +69,7 @@ const HistoryGrid = ({ sessions, onEdit }) => {
             field: 'duration',
             headerName: 'Duration',
             width: 110,
+            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' },
             valueFormatter: (p) => p.value ? p.value : '-'
         },
         {
@@ -74,22 +78,26 @@ const HistoryGrid = ({ sessions, onEdit }) => {
             flex: 2,
             minWidth: 200,
             wrapText: true,
-            autoHeight: true
+            autoHeight: true,
+            cellStyle: { display: 'flex', alignItems: 'center' } // Keep Left
         },
         {
             field: 'project',
             headerName: 'Project',
-            width: 120
+            width: 120,
+            cellStyle: { display: 'flex', alignItems: 'center' }
         },
         {
             field: 'category',
             headerName: 'Category',
-            width: 120
+            width: 120,
+            cellStyle: { display: 'flex', alignItems: 'center' }
         },
         {
             field: 'status',
             headerName: 'Status',
             width: 130,
+            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
             cellRenderer: (p) => {
                 const s = String(p.value).toLowerCase();
                 let color = 'gray';
@@ -110,20 +118,21 @@ const HistoryGrid = ({ sessions, onEdit }) => {
             field: 'approvedState',
             headerName: 'Approval',
             width: 120,
+            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
             cellRenderer: (p) => {
                 const s = String(p.value || 'Pending').toLowerCase();
                 const isApproved = s === 'approved';
                 return (
                     <span style={{
                         padding: '2px 8px',
-                        borderRadius: '12px',
-                        backgroundColor: isApproved ? '#ecfdf5' : '#fefce8',
-                        color: isApproved ? '#059669' : '#d97706',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        border: `1px solid ${isApproved ? '#a7f3d0' : '#fde68a'}`
+                        borderRadius: '4px',
+                        backgroundColor: isApproved ? '#DEF7EC' : '#FEECDC',
+                        color: isApproved ? '#03543E' : '#8A2C0D',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.5px'
                     }}>
-                        {p.value || 'Pending'}
+                        {String(p.value || 'Pending').toUpperCase()}
                     </span>
                 );
             }
@@ -131,18 +140,20 @@ const HistoryGrid = ({ sessions, onEdit }) => {
         {
             headerName: 'Action',
             width: 90,
+            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
             cellRenderer: (p) => (
                 <button
                     onClick={() => p.context.onEdit(p.data)}
                     style={{
-                        padding: '4px 12px',
-                        background: '#f1f5f9',
-                        color: '#475569',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '6px',
+                        padding: '6px 14px',
+                        background: 'transparent',
+                        color: '#2563EB',
+                        border: '1px solid #2563EB',
+                        borderRadius: '4px',
                         cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        fontWeight: 600
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase'
                     }}
                 >
                     Edit
@@ -157,7 +168,8 @@ const HistoryGrid = ({ sessions, onEdit }) => {
     const defaultColDef = useMemo(() => ({
         resizable: true,
         sortable: true,
-        filter: true,
+        filter: false, // REMOVE FILTER COMPLETELY (and its icon)
+        suppressMenu: true,
         cellStyle: { display: 'flex', alignItems: 'center' } // Vertical Center
     }), []);
 
@@ -182,8 +194,8 @@ const HistoryGrid = ({ sessions, onEdit }) => {
 
     return (
         <div style={{
-            marginTop: '2rem',
-            height: '400px', // Fixed height for scrolling
+            marginTop: '0.5rem',
+            height: 'calc(100vh - 220px)', // Precise fit accounting for header + padding + nav
             width: '100%',
             backgroundColor: 'white',
             borderRadius: '12px',
@@ -195,9 +207,11 @@ const HistoryGrid = ({ sessions, onEdit }) => {
                 rowData={sessions}
                 columnDefs={colDefs}
                 defaultColDef={defaultColDef}
-                rowHeight={48}
+                rowHeight={52}
+                headerHeight={48}
                 pagination={true}
                 paginationPageSize={10}
+                paginationPageSizeSelector={[10, 20, 50, 100]}
                 context={{ onEdit }}
             />
         </div>

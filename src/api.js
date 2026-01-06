@@ -25,18 +25,18 @@ const normalizeData = (data) => {
   if (!Array.isArray(data)) return [];
   return data.map(item => ({
     recordId: item.recordId || item['Record ID'] || item['record id'],
-    date: item.date || item['Date'] || item['date'],
-    userName: item.userName || item['User Name'] || item['Name'] || item['user name'],
-    sessionNo: item.sessionNo || item['Session No'] || item['Session'] || item['session no'],
-    startTime: item.startTime || item['Start Time'] || item['start time'],
-    endTime: item.endTime || item['End Time'] || item['end time'],
-    duration: item.duration || item['Duration'] || item['duration'],
-    workDescription: item.workDescription || item['Work Description'] || item['work description'],
-    status: item.status || item['Status'] || item['status'],
-    project: item.project || item['Project'] || item['project'],
-    category: item.category || item['category'] || item['Category'],
-    approvedState: item.approvedState || item['Approved State'] || item['Approved'] || item['approved state'],
-    approvedBy: item.approvedBy || item['Approved By'] || item['approved by']
+    date: item.date || item['Date'] || item['date'] || '',
+    userName: item.userName || item['User Name'] || item['Name'] || item['user name'] || '',
+    sessionNo: item.sessionNo || item['Session No'] || item['Session'] || item['session no'] || '',
+    startTime: item.startTime || item['Start Time'] || item['start time'] || '',
+    endTime: item.endTime || item['End Time'] || item['end time'] || '',
+    duration: item.duration || item['Duration'] || item['duration'] || '',
+    workDescription: item.workDescription || item['Work Description'] || item['work description'] || '',
+    status: item.status || item['Status'] || item['status'] || 'Pending',
+    project: item.project || item['Project'] || item['project'] || '',
+    category: item.category || item['category'] || item['Category'] || '',
+    approvedState: item.approvedState || item['Approved State'] || item['Approved'] || item['approved state'] || 'Pending',
+    approvedBy: item.approvedBy || item['Approved By'] || item['approved by'] || ''
   }));
 };
 
@@ -52,32 +52,28 @@ export const fetchData = async () => {
   }
 };
 
+// Helper to remove undefined/null from object before params
+const cleanParams = (data) => {
+  const cleaned = {};
+  for (const key in data) {
+    if (data[key] !== undefined && data[key] !== null) {
+      cleaned[key] = data[key];
+    }
+  }
+  return cleaned;
+};
 
 export const createRecord = async (data) => {
   try {
-    // Explicitly construct params to avoid any object spread weirdness
-    const params = new URLSearchParams();
-    params.append('action', 'create');
-
-    // Check and append each field efficiently
-    if (data.date) params.append('date', data.date);
-    if (data.userName) params.append('userName', data.userName);
-    if (data.sessionNo) params.append('sessionNo', data.sessionNo);
-    if (data.startTime) params.append('startTime', data.startTime);
-    if (data.endTime) params.append('endTime', data.endTime);
-    if (data.duration) params.append('duration', data.duration);
-    if (data.workDescription) params.append('workDescription', data.workDescription);
-    if (data.status) params.append('status', data.status);
-    if (data.project) params.append('project', data.project);
-    if (data.category) params.append('category', data.category);
-    if (data.approvedState) params.append('approvedState', data.approvedState);
-    if (data.approvedBy) params.append('approvedBy', data.approvedBy);
+    const params = new URLSearchParams({
+      ...cleanParams(data),
+      action: 'create'
+    });
 
     const urlWithParams = `${API_URL}${API_URL.includes('?') ? '&' : '?'}${params.toString()}`;
 
-    console.log("Creating Record URL:", urlWithParams); // Debugging
+    console.log("Creating Record URL:", urlWithParams);
 
-    // Use POST with text/plain to avoid CORS strictness, but data is in URL
     const response = await fetch(urlWithParams, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -93,7 +89,7 @@ export const createRecord = async (data) => {
 export const updateRecord = async (data) => {
   try {
     const params = new URLSearchParams({
-      ...data,
+      ...cleanParams(data),
       action: 'update'
     });
     const urlWithParams = `${API_URL}${API_URL.includes('?') ? '&' : '?'}${params.toString()}`;

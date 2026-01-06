@@ -7,53 +7,9 @@ import EndSessionModal from './EndSessionModal';
 import EditSessionModal from './EditSessionModal';
 import StatsCard from './StatsCard';
 import { fetchData, createRecord, updateRecord } from '../api';
+import UserNameModal from './UserNameModal';
 
-const CURRENT_USER = 'Jeevith';
 
-// Helper to parse "1 hr 30 mins 20 sec"
-const parseDurationString = (input) => {
-    if (!input) return 0;
-    // Force to string to prevent "match is not a function" error if input is a number/object
-    const str = String(input);
-
-    let sec = 0;
-    const h = str.match(/(\d+)\s*hr/);
-    const m = str.match(/(\d+)\s*mins?/);
-    const s = str.match(/(\d+)\s*sec/);
-
-    if (h) sec += parseInt(h[1]) * 3600;
-    if (m) sec += parseInt(m[1]) * 60;
-    if (s) sec += parseInt(s[1]);
-
-    // Fallback: if no text match but it is a non-zero number, treat as minutes (legacy support)
-    // Only if sec is 0 and parseFloat works
-    if (sec === 0) {
-        const floatVal = parseFloat(str);
-        if (!isNaN(floatVal) && floatVal > 0) {
-            // Heuristic: If < 10, maybe hours? If > 10, maybe minutes? 
-            // Let's assume minutes for safety as that was previous default
-            sec = Math.floor(floatVal * 60);
-        }
-    }
-
-    return sec;
-};
-
-// Helper: "1 hr 30 mins 45 sec"
-const formatDurationString = (totalSeconds) => {
-    if (isNaN(totalSeconds) || totalSeconds < 0) return '0 sec';
-
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = Math.floor(totalSeconds % 60);
-
-    let parts = [];
-    if (h > 0) parts.push(`${h} hr`);
-    if (m > 0) parts.push(`${m} mins`);
-    if (s > 0 || parts.length === 0) parts.push(`${s} sec`);
-
-    return parts.join(' ');
-};
 
 const TrackerApp = () => {
     const [loading, setLoading] = useState(true);
@@ -62,12 +18,19 @@ const TrackerApp = () => {
     const [isEndModalOpen, setIsEndModalOpen] = useState(false);
     const [todayStats, setTodayStats] = useState({ seconds: 0, count: 0 });
 
+    // User State
+    const [userName, setUserName] = useState(localStorage.getItem('appUserName') || '');
+    const [isUserModalOpen, setIsUserModalOpen] = useState(!localStorage.getItem('appUserName'));
+
     // Edit Modal State
     const [editSession, setEditSession] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     // 1. Initial Load & Calculate Stats
     useEffect(() => {
+        if (!userName) {
+            setIsUserModalOpen(true);
+        }
         loadData();
         // Check local storage for active session
         const storedSession = localStorage.getItem('activeWorkSession');
@@ -79,12 +42,31 @@ const TrackerApp = () => {
                 localStorage.removeItem('activeWorkSession');
             }
         }
-    }, []);
+    }, [userName]); // Reload if username changes
 
     // 2. Recalculate Stats when sessions change
     useEffect(() => {
-        const todayStr = new Date().toLocaleDateString('en-CA');
-        const todaySessions = sessions.filter(s => s.date && s.date.includes(todayStr));
+        // Construct System Date "YYYY-MM-DD"
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        // Safely check s.date with Timezone Parse
+        const todaySessions = sessions.filter(s => {
+            if (!s.date) return false;
+            let d = new Date(s.date);
+            if (isNaN(d.getTime())) return false; // Invalid date
+
+            // Check formatted local string
+            const sYear = d.getFullYear();
+            const sMonth = String(d.getMonth() + 1).padStart(2, '0');
+            const sDay = String(d.getDate()).padStart(2, '0');
+            const sDateStr = `${sYear}-${sMonth}-${sDay}`;
+
+            return sDateStr === todayStr;
+        });
 
         let totalSec = 0;
         todaySessions.forEach(s => {
@@ -98,35 +80,34 @@ const TrackerApp = () => {
     }, [sessions]);
 
     const loadData = async () => {
+        if (!userName) return; // Don't load if no user
         setLoading(true);
         try {
             const data = await fetchData();
 
-            // Get today's components
-            const today = new Date();
-            const tYear = today.getFullYear();
-            const tMonth = today.getMonth();
-            const tDay = today.getDate();
+            // Filter: Current User AND Matches Today's Date (Strict Manual System Date)
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
 
-            // Filter: Current User AND Matches Today's Date (Component Check)
-            const myTodaySessions = data.filter(s => {
-                if (s.userName !== CURRENT_USER) return false;
+            console.log("System Date Filter:", todayStr);
+
+            const mySessions = data.filter(s => {
+                // Ensure we filter by the correct user name (now fixed in API)
+                if (s.userName !== userName) return false;
                 if (!s.date) return false;
 
-                // Create date object from record
-                const recDate = new Date(s.date);
-                if (isNaN(recDate.getTime())) return false; // Invalid date
-
-                // Compare Y/M/D
-                return recDate.getFullYear() === tYear &&
-                    recDate.getMonth() === tMonth &&
-                    recDate.getDate() === tDay;
+                // Robust Match: Handle "2026-01-06" OR "2026-01-06T..." -> "2026-01-06"
+                const recordDateStr = String(s.date).split('T')[0];
+                return recordDateStr === todayStr;
             });
 
             console.log("All Data:", data.length);
-            console.log("Filtered Data:", myTodaySessions.length);
+            console.log("Today Data:", mySessions.length);
 
-            setSessions(myTodaySessions);
+            setSessions(mySessions);
         } catch (e) {
             console.error("Failed to load", e);
         } finally {
@@ -136,19 +117,35 @@ const TrackerApp = () => {
 
     // 3. Start Work
     const handleStartWork = async () => {
+        if (!userName) {
+            setIsUserModalOpen(true);
+            return;
+        }
+
         const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10);
+        // USE LOCAL DATE
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
         const timeStr = now.toTimeString().slice(0, 5); // HH:MM
 
-        const todaySessions = sessions.filter(s => {
-            if (!s.date) return false;
-            return s.date.includes(dateStr);
-        });
-        const nextSessionNo = todaySessions.length + 1;
+        // Calculate Next Session Number for TODAY
+        // Filter mySessions for today's records specifically (Robust Match)
+        const sessionsToday = sessions.filter(s => s.date && String(s.date).includes(dateStr));
+
+        let nextSessionNo = 1;
+        if (sessionsToday.length > 0) {
+            // Find max session number to avoid duplicates if rows were deleted
+            const sessionNums = sessionsToday.map(s => parseInt(s.sessionNo) || 0);
+            const maxSession = Math.max(...sessionNums);
+            nextSessionNo = maxSession + 1;
+        }
 
         const newLocalSession = {
             date: dateStr,
-            userName: CURRENT_USER,
+            userName: userName,
             sessionNo: nextSessionNo.toString(),
             startTime: timeStr,
             startTimeFull: now.toISOString(), // Store full ISO
@@ -204,30 +201,27 @@ const TrackerApp = () => {
         };
 
         try {
-            await createRecord(finalPayload);
+            const res = await createRecord(finalPayload);
             setIsEndModalOpen(false);
             setActiveSession(null);
             localStorage.removeItem('activeWorkSession');
+
+            // OPTIMISTIC UPDATE: Add to sessions immediately so "Start Work" sees it
+            // This prevents the "Session 3 again" bug if Google Sheets is slow
+            const newOptimisticRecord = {
+                ...finalPayload,
+                recordId: res.recordId || Date.now(), // Use returned ID or temp
+                status: 'Completed' // Ensure status is set
+            };
+
+            setSessions(prev => [newOptimisticRecord, ...prev]);
+
+            // Still reload in background to confirm
             setTimeout(loadData, 1000);
         } catch (e) {
             alert("Error ending session: " + e.message);
         }
     };
-
-
-    if (loading && sessions.length === 0) {
-        return (
-            <DashboardLayout>
-                <div style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    minHeight: '60vh', gap: '1rem'
-                }}>
-                    <div className="loading-spinner"></div>
-                    <div style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Syncing Timeline...</div>
-                </div>
-            </DashboardLayout>
-        );
-    }
 
 
     // 6. Action Handlers
@@ -259,27 +253,107 @@ const TrackerApp = () => {
         }
     };
 
+    const handleSaveUser = (name) => {
+        setUserName(name);
+        localStorage.setItem('appUserName', name);
+        setIsUserModalOpen(false);
+    };
+
+    // View State
+    const [currentView, setCurrentView] = useState('tracker');
+    const [systemDate, setSystemDate] = useState('');
+
+    useEffect(() => {
+        // Set formatted system date for display
+        const now = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        setSystemDate(now.toLocaleDateString(undefined, options));
+    }, []);
+
     return (
-        <DashboardLayout>
+        <DashboardLayout
+            userProfile={{ name: userName || 'Guest', role: 'Developer' }}
+            onEditProfile={() => setIsUserModalOpen(true)}
+        >
             <div className="fade-in-entry">
-                {/* Top Section: Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem', alignItems: 'stretch' }}>
-                    <TimerCard
-                        activeSession={activeSession}
-                        onStart={handleStartWork}
-                        onEnd={handleEndClick}
-                    />
-                    <StatsCard
-                        totalSeconds={todayStats.seconds}
-                        sessionCount={todayStats.count}
-                    />
+                {/* Navigation / Header Area */}
+                <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
+                    {/* System Date Display */}
+                    <div style={{
+                        fontSize: '1.1rem',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                    }}>
+                        <span style={{ color: 'var(--accent-color)' }}>📅</span>
+                        {systemDate}
+                    </div>
+
+                    {currentView === 'tracker' ? (
+                        <button
+                            onClick={() => setCurrentView('history')}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                backgroundColor: 'var(--primary-color)',
+                                color: 'white',
+                                borderRadius: '8px',
+                                border: 'none',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                boxShadow: 'var(--shadow-md)'
+                            }}
+                        >
+                            <span>View History ➜</span>
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setCurrentView('tracker')}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                backgroundColor: 'white',
+                                color: 'var(--text-primary)',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}
+                        >
+                            <span>← Back to Tracker</span>
+                        </button>
+                    )}
                 </div>
 
-                {/* History Grid */}
-                <HistoryGrid
-                    sessions={sessions}
-                    onEdit={handleEditClick}
-                />
+                {/* TRACKER VIEW */}
+                {currentView === 'tracker' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem', alignItems: 'stretch' }}>
+                        <TimerCard
+                            activeSession={activeSession}
+                            onStart={handleStartWork}
+                            onEnd={handleEndClick}
+                        />
+                        <StatsCard
+                            totalSeconds={todayStats.seconds}
+                            sessionCount={todayStats.count}
+                        />
+                    </div>
+                )}
+
+                {/* HISTORY VIEW */}
+                {currentView === 'history' && (
+                    <HistoryGrid
+                        sessions={sessions}
+                        onEdit={handleEditClick}
+                    />
+                )}
             </div>
 
             <EndSessionModal
@@ -295,8 +369,59 @@ const TrackerApp = () => {
                 onSave={handleUpdateConfirm}
                 onDelete={handleDeleteConfirm}
             />
+
+            <UserNameModal
+                isOpen={isUserModalOpen}
+                currentName={userName}
+                onSave={handleSaveUser}
+                onClose={() => userName && setIsUserModalOpen(false)} // Only allow close if name exists
+            />
         </DashboardLayout>
     );
 };
 
+// Helper to parse "1 hr 30 mins 20 sec"
+const parseDurationString = (input) => {
+    if (!input) return 0;
+    // Force to string to prevent "match is not a function" error if input is a number/object
+    const str = String(input);
+
+    let sec = 0;
+    const h = str.match(/(\d+)\s*hr/);
+    const m = str.match(/(\d+)\s*mins?/);
+    const s = str.match(/(\d+)\s*sec/);
+
+    if (h) sec += parseInt(h[1]) * 3600;
+    if (m) sec += parseInt(m[1]) * 60;
+    if (s) sec += parseInt(s[1]);
+
+    // Fallback: if no text match but it is a non-zero number, treat as minutes (legacy support)
+    // Only if sec is 0 and parseFloat works
+    if (sec === 0) {
+        const floatVal = parseFloat(str);
+        if (!isNaN(floatVal) && floatVal > 0) {
+            sec = Math.floor(floatVal * 60);
+        }
+    }
+
+    return sec;
+};
+
+// Helper: "1 hr 30 mins 45 sec"
+const formatDurationString = (totalSeconds) => {
+    if (isNaN(totalSeconds) || totalSeconds < 0) return '0 sec';
+
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = Math.floor(totalSeconds % 60);
+
+    let parts = [];
+    if (h > 0) parts.push(`${h} hr`);
+    if (m > 0) parts.push(`${m} mins`);
+    if (s > 0 || parts.length === 0) parts.push(`${s} sec`);
+
+    return parts.join(' ');
+};
+
 export default TrackerApp;
+

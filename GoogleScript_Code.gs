@@ -43,7 +43,9 @@ function handleRequest(e) {
     // READ (Default)
     // ==========================================
     if (!action || action === 'read') {
-      var data = sheet.getDataRange().getValues();
+      // Use getDisplayValues() to get the formatted strings (e.g. "2026-01-06", "14:30")
+      // This prevents UTC timezone shifts in the API response.
+      var data = sheet.getDataRange().getDisplayValues();
       var headers = data[0];
       var rows = [];
       
@@ -55,8 +57,8 @@ function handleRequest(e) {
         // Assuming Order: ID, Date, SessionNo, UserName, Start, End, Duration, Desc, Project, Category, Status, ApprState, ApprBy
         obj.recordId = row[0];
         obj.date = row[1];
-        obj.sessionNo = row[2];
-        obj.userName = row[3];
+        obj.userName = row[2]; // Column C is Name
+        obj.sessionNo = row[3]; // Column D is Session
         obj.startTime = row[4];
         obj.endTime = row[5];
         obj.duration = row[6];
@@ -92,8 +94,8 @@ function handleRequest(e) {
       var newRow = [
         newId,
         requestData.date || '',
-        requestData.sessionNo || '',
-        requestData.userName || '',
+        requestData.userName || '',    // Column C (Name)
+        requestData.sessionNo || '',   // Column D (Session)
         requestData.startTime || '',
         requestData.endTime || '',
         requestData.duration || '',
@@ -150,8 +152,8 @@ function handleRequest(e) {
       }
 
       setCell(2, requestData.date);
-      setCell(3, requestData.sessionNo);
-      setCell(4, requestData.userName);
+      setCell(3, requestData.userName);  // Column C (Name)
+      setCell(4, requestData.sessionNo); // Column D (Session)
       setCell(5, requestData.startTime);
       setCell(6, requestData.endTime);
       setCell(7, requestData.duration);

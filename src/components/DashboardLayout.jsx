@@ -1,7 +1,7 @@
 
-import React from 'react';
+import logo from '../assets/logo.png';
 
-const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Developer' } }) => {
+const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Developer' }, onEditProfile }) => {
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             {/* Top Navigation Bar */}
@@ -18,17 +18,17 @@ const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Dev
                 zIndex: 10
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{
-                        width: '32px', height: '32px',
-                        background: 'linear-gradient(135deg, var(--primary-color), var(--accent-color))',
-                        borderRadius: '8px'
-                    }}></div>
+                    <img src={logo} alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
                     <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                         WorkTracker
                     </h1>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div
+                    onClick={onEditProfile}
+                    style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}
+                    title="Click to edit profile"
+                >
                     <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
                         <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{userProfile.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{userProfile.role}</div>
@@ -38,9 +38,14 @@ const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Dev
                         borderRadius: '50%',
                         backgroundColor: 'var(--secondary-color)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'var(--text-secondary)', fontWeight: 600
-                    }}>
-                        {userProfile.name.charAt(0)}
+                        color: 'var(--text-secondary)', fontWeight: 600,
+                        border: '2px solid transparent',
+                        transition: 'all 0.2s'
+                    }}
+                        onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'}
+                        onMouseOut={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                    >
+                        {userProfile.name.charAt(0).toUpperCase()}
                     </div>
                 </div>
             </header>
@@ -51,10 +56,10 @@ const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Dev
                 width: '100%',
                 maxWidth: '1200px',
                 margin: '0 auto',
-                padding: '2rem',
+                padding: '3rem 4rem', // INCREASED PADDING
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '2rem'
+                gap: '2.5rem'
             }}>
                 {children}
             </main>
