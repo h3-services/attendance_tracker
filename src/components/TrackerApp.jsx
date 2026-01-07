@@ -7,13 +7,11 @@ import EndSessionModal from './EndSessionModal';
 import EditSessionModal from './EditSessionModal';
 import StatsCard from './StatsCard';
 import { fetchData, createRecord, updateRecord, deleteRecord } from '../api';
-import UserNameModal from './UserNameModal';
-
+import LoginPage from './LoginPage';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import LogoutConfirmationModal from './LogoutConfirmationModal';
 import CheckInModal from './CheckInModal';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-
-
 
 const TrackerApp = () => {
     const [loading, setLoading] = useState(true);
@@ -24,7 +22,7 @@ const TrackerApp = () => {
 
     // User State
     const [userName, setUserName] = useState(localStorage.getItem('appUserName') || '');
-    const [isUserModalOpen, setIsUserModalOpen] = useState(!localStorage.getItem('appUserName'));
+    const [userEmail, setUserEmail] = useState(localStorage.getItem('appUserEmail') || '');
 
     // Edit Modal State
     const [editSession, setEditSession] = useState(null);
@@ -33,6 +31,9 @@ const TrackerApp = () => {
     // Delete Modal State
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteTargetId, setDeleteTargetId] = useState(null);
+
+    // Logout Modal State
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
     // Notification State
     const [reminderInterval, setReminderInterval] = useState(() => {
@@ -55,7 +56,7 @@ const TrackerApp = () => {
 
     // Reminder Polling
     useEffect(() => {
-        if (!activeSession || activeSession.status !== 'In Progress' || reminderInterval === 0) return;
+        if (!activeSession || activeSession.status !== 'In Progress' || reminderInterval <= 0 || isEndModalOpen) return;
 
         const checkReminder = () => {
             const now = new Date();
@@ -66,7 +67,7 @@ const TrackerApp = () => {
             // If invalid, skip
             if (isNaN(baseTime.getTime())) return;
 
-            if (activeSession.status === 'Paused') return;
+            if (activeSession.status === 'Paused' || isEndModalOpen) return;
 
             const elapsedSeconds = (now - baseTime) / 1000;
 
@@ -86,13 +87,22 @@ const TrackerApp = () => {
         const interval = setInterval(checkReminder, 1000);
 
         return () => clearInterval(interval);
-    }, [activeSession, reminderInterval]);
+    }, [activeSession, reminderInterval, isEndModalOpen]);
 
     const sendNotification = () => {
+        // Format time string
+        const h = Math.floor(reminderInterval / 3600);
+        const m = Math.floor((reminderInterval % 3600) / 60);
+        const s = reminderInterval % 60;
+        let timeText = '';
+        if (h > 0) timeText += `${h}h `;
+        if (m > 0) timeText += `${m}m `;
+        if (s > 0 || timeText === '') timeText += `${s}s`;
+
         if (Notification.permission === 'granted') {
             const n = new Notification("Still working?", {
-                body: `You've been active for ${reminderInterval} minutes. Click to check in.`,
-                icon: '/favicon.ico', // optional
+                body: `You've been active for ${timeText.trim()}. Click to check in.`,
+                icon: `${import.meta.env.BASE_URL}favicon.ico`, // optional
                 tag: 'check-in' // prevent duplicates
             });
             n.onclick = () => {
@@ -117,10 +127,10 @@ const TrackerApp = () => {
 
     // 1. Initial Load & Calculate Stats
     useEffect(() => {
-        if (!userName) {
-            setIsUserModalOpen(true);
+        if (userName) {
+            loadData();
         }
-        loadData();
+
         // Check local storage for active session
         const storedSession = localStorage.getItem('activeWorkSession');
         if (storedSession) {
@@ -690,65 +700,133 @@ const TrackerApp = () => {
         }
     };
 
-    const handleSaveUser = (name) => {
-        setUserName(name);
-        localStorage.setItem('appUserName', name);
-        setIsUserModalOpen(false);
+    const handleLogin = (user) => {
+        setUserName(user.name);
+        setUserEmail(user.email);
+        localStorage.setItem('appUserName', user.name);
+        localStorage.setItem('appUserEmail', user.email);
     };
 
-    // View State REMOVED
-    // const [currentView, setCurrentView] = useState('tracker');
+    const handleLogoutClick = () => {
+        setIsLogoutModalOpen(true);
+    };
+
+    const confirmLogout = () => {
+        setUserName('');
+        setUserEmail('');
+        localStorage.removeItem('appUserName');
+        localStorage.removeItem('appUserEmail');
+        setIsLogoutModalOpen(false);
+    };
+
+
+
+    // 7. Prevent Accidental Exit
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (activeSession && activeSession.status === 'In Progress') {
+                console.log("Preventing unload: Session is active");
+                e.preventDefault();
+                e.returnValue = 'You have an active session. Are you sure you want to leave?';
+            }
+        };
+
+        if (activeSession && activeSession.status === 'In Progress') {
+            console.log("Exit protection ENABLED for session:", activeSession.sessionNo);
+        }
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [activeSession]);
 
     const navigate = useNavigate();
     const location = useLocation();
 
+    // If not logged in, show Login Page
+    if (!userName) {
+        return <LoginPage onLogin={handleLogin} />;
+    }
+
     return (
         <DashboardLayout
             userProfile={{ name: userName || 'Guest', role: 'Developer' }}
-            onEditProfile={() => setIsUserModalOpen(true)}
+            onEditProfile={handleLogoutClick}
         >
             <div className="fade-in-entry">
                 {/* Navigation / Header Area */}
                 <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem' }}>
 
                     {/* Add Record Button (Visible on both Dashboard & History) */}
-                    <button
-                        onClick={handleManualAdd}
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            backgroundColor: 'white',
-                            color: 'var(--primary-color)',
-                            borderRadius: '8px',
-                            border: '1px solid var(--primary-color)',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                        }}
-                    >
-                        <span>+ Add Record</span>
-                    </button>
+                    {/* Add Record Button Removed */}
 
                     {location.pathname === '/' ? (
-                        <button
-                            onClick={() => navigate('/history')}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: 'var(--primary-color)',
-                                color: 'white',
-                                borderRadius: '8px',
-                                border: 'none',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                boxShadow: 'var(--shadow-md)'
-                            }}
-                        >
-                            <span>View History ➜</span>
-                        </button>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button
+                                onClick={handleManualAdd}
+                                style={{
+                                    padding: '0.75rem 1.25rem',
+                                    background: 'var(--primary-color)',
+                                    color: 'white',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    boxShadow: 'var(--shadow-sm)',
+                                    transition: 'transform 0.1s ease',
+                                }}
+                                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+                                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                                <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span>
+                                Add Record
+                            </button>
+                            <button
+                                onClick={loadData}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.75rem 1rem',
+                                    backgroundColor: 'white',
+                                    color: 'var(--text-secondary)',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border-color)',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+                            >
+                                <span style={{ fontSize: '1.1rem', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+                                {loading ? 'Syncing...' : 'Refresh'}
+                            </button>
+                            <button
+                                onClick={() => navigate('/history')}
+                                style={{
+                                    padding: '0.75rem 1.5rem',
+                                    backgroundColor: 'var(--primary-color)',
+                                    color: 'white',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    boxShadow: 'var(--shadow-md)'
+                                }}
+                            >
+                                <span>View History ➜</span>
+                            </button>
+                        </div>
                     ) : (
                         <button
                             onClick={() => navigate('/')}
@@ -818,12 +896,7 @@ const TrackerApp = () => {
                 onConfirm={executeDelete}
             />
 
-            <UserNameModal
-                isOpen={isUserModalOpen}
-                currentName={userName}
-                onSave={handleSaveUser}
-                onClose={() => userName && setIsUserModalOpen(false)} // Only allow close if name exists
-            />
+
 
             <CheckInModal
                 isOpen={isCheckInModalOpen}
@@ -837,6 +910,13 @@ const TrackerApp = () => {
                     handleEndClick();
                 }}
             />
+            {/* Logout Confirmation Modal */}
+            <LogoutConfirmationModal
+                isOpen={isLogoutModalOpen}
+                onClose={() => setIsLogoutModalOpen(false)}
+                onConfirm={confirmLogout}
+            />
+
         </DashboardLayout>
     );
 };

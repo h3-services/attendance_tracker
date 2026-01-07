@@ -66,12 +66,52 @@ const StatsCard = ({ totalSeconds, sessionCount }) => {
 
             {/* Flip Clock Display */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-                <WhiteFlipUnit value={sessionCount} label="SECTION" />
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--border-color)', marginTop: '-1.5rem' }}>:</div>
+
+                {/* Section Layout - Distinct from Time */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', marginRight: '0.5rem' }}>
+                    <div style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                        boxShadow: 'inset 0 2px 4px rgba(255,255,255,1), 0 4px 6px rgba(0,0,0,0.05)',
+                        border: '4px solid white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative'
+                    }}>
+                        <div style={{
+                            position: 'absolute', inset: '4px', borderRadius: '50%',
+                            border: '1px dashed #cbd5e1'
+                        }}></div>
+                        <span style={{
+                            fontSize: '2rem',
+                            fontWeight: 800,
+                            color: '#334155',
+                            fontFamily: "'Inter', sans-serif"
+                        }}>
+                            {sessionCount}
+                        </span>
+                    </div>
+                    <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: '#64748b',
+                        letterSpacing: '1px',
+                        textTransform: 'uppercase'
+                    }}>
+                        SECTION
+                    </span>
+                </div>
+
+                {/* Divider - Vertical Line */}
+                <div style={{ width: '1px', height: '60px', background: '#e2e8f0', margin: '0 0.5rem 1.5rem 0.5rem' }}></div>
+
                 <WhiteFlipUnit value={h} label="HRS" />
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--border-color)', marginTop: '-1.5rem' }}>:</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#cbd5e1', marginTop: '-1.5rem' }}>:</div>
                 <WhiteFlipUnit value={m} label="MIN" />
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--border-color)', marginTop: '-1.5rem' }}>:</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#cbd5e1', marginTop: '-1.5rem' }}>:</div>
                 <WhiteFlipUnit value={s} label="SEC" />
             </div>
 

@@ -143,3 +143,51 @@ export const deleteRecord = async (id) => {
     throw error;
   }
 };
+
+// ==========================================
+// AUTHENTICATION API
+// ==========================================
+// Consolidated: Auth now lives in the main script
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL;
+
+// Consolidated: Auth now lives in the main script
+const authRequest = async (data) => {
+  if (!AUTH_API_URL || AUTH_API_URL.includes('ADD_YOUR_AUTH_SCRIPT_URL_HERE')) {
+    throw new Error("Auth API URL not configured. Please deploy the Auth Script and update .env");
+  }
+
+  try {
+    const response = await fetch(AUTH_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(data)
+    });
+    const text = await response.text();
+    const json = JSON.parse(text);
+
+    if (json.status === 'error') {
+      throw new Error(json.message);
+    }
+    return json;
+  } catch (error) {
+    console.error("Auth Request Error:", error);
+    throw error;
+  }
+};
+
+export const registerUser = async (email, password, name) => {
+  return await authRequest({
+    action: 'register',
+    email,
+    password,
+    name
+  });
+};
+
+export const loginUser = async (email, password) => {
+  return await authRequest({
+    action: 'login',
+    email,
+    password
+  });
+};

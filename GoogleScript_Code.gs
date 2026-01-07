@@ -99,6 +99,8 @@ function handleRequest(e) {
       return responseJSON(rows);
     }
 
+
+
     // ==========================================
     // CREATE ACTION (Smart Write)
     // ==========================================
@@ -137,9 +139,9 @@ function handleRequest(e) {
         // Header Styling
         var hRange = targetSheet.getRange(1, 1, 1, 13);
         hRange.setFontWeight("bold")
-              .setBackground("#f1f5f9")
-              .setBorder(true, true, true, true, true, true)
-              .setHorizontalAlignment("center");
+               .setBackground("#f1f5f9")
+               .setBorder(true, true, true, true, true, true)
+               .setHorizontalAlignment("center");
       }
 
       // D. Date Separator Logic (Specific to this sheet)

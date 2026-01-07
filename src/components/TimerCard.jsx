@@ -106,27 +106,8 @@ const TimerCard = ({ onStart, onEnd, onPause, onResume, activeSession, reminderI
     const internalProps = { setReminderInterval };
 
     const [elapsed, setElapsed] = useState(0);
-    const [isManualEntry, setIsManualEntry] = useState(false);
-    const [manualTime, setManualTime] = useState('');
+    // Manual entry logic removed
 
-    const handleManualSubmit = () => {
-        if (!manualTime) return;
-
-        const now = new Date();
-        const [h, m] = manualTime.split(':').map(Number);
-
-        const startDate = new Date();
-        startDate.setHours(h, m, 0, 0);
-
-        // Validation: Cannot start in future
-        if (startDate > now) {
-            alert("Start time cannot be in the future");
-            return;
-        }
-
-        onStart(startDate);
-        setIsManualEntry(false);
-    };
 
     useEffect(() => {
         let interval = null;
@@ -414,106 +395,26 @@ const TimerCard = ({ onStart, onEnd, onPause, onResume, activeSession, reminderI
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', width: '100%' }}>
-                    {!isManualEntry ? (
-                        <>
-                            <button
-                                onClick={() => onStart()}
-                                style={{
-                                    background: 'var(--primary-color)',
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '1rem 3.5rem',
-                                    borderRadius: '8px',
-                                    fontSize: '1.1rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 6px -1px rgba(15, 23, 42, 0.2)',
-                                    transition: 'all 0.2s ease',
-                                    display: 'flex', alignItems: 'center', gap: '0.8rem'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--primary-color)'}
-                            >
-                                <span style={{ fontSize: '1.2rem' }}>▸</span> Start Session
-                            </button>
-
-                            <button
-                                onClick={() => {
-                                    const now = new Date();
-                                    const timeStr = now.toTimeString().slice(0, 5);
-                                    setManualTime(timeStr);
-                                    setIsManualEntry(true);
-                                }}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'var(--text-secondary)',
-                                    fontSize: '0.9rem',
-                                    cursor: 'pointer',
-                                    textDecoration: 'underline',
-                                    opacity: 0.8
-                                }}
-                            >
-                                Started Earlier?
-                            </button>
-                        </>
-                    ) : (
-                        <div style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem',
-                            background: 'white', padding: '1.5rem', borderRadius: '12px',
-                            boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)',
-                            animation: 'fadeIn 0.2s ease-out'
-                        }}>
-                            <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>When did you start?</h3>
-
-                            <input
-                                type="time"
-                                value={manualTime}
-                                onChange={(e) => setManualTime(e.target.value)}
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    borderRadius: '6px',
-                                    border: '1px solid var(--border-color)',
-                                    fontSize: '1.2rem',
-                                    textAlign: 'center',
-                                    outline: 'none',
-                                    color: 'var(--text-primary)'
-                                }}
-                            />
-
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button
-                                    onClick={() => setIsManualEntry(false)}
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: '#f1f5f9',
-                                        color: '#64748b',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        cursor: 'pointer',
-                                        fontWeight: 500
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleManualSubmit}
-                                    disabled={!manualTime}
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: 'var(--primary-color)',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        cursor: 'pointer',
-                                        fontWeight: 500
-                                    }}
-                                >
-                                    Confirm Start
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    <button
+                        onClick={() => onStart()}
+                        style={{
+                            background: 'var(--primary-color)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '1rem 3.5rem',
+                            borderRadius: '8px',
+                            fontSize: '1.1rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 6px -1px rgba(15, 23, 42, 0.2)',
+                            transition: 'all 0.2s ease',
+                            display: 'flex', alignItems: 'center', gap: '0.8rem'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--primary-color)'}
+                    >
+                        <span style={{ fontSize: '1.2rem' }}>▸</span> Start Session
+                    </button>
                 </div>
             )}
 

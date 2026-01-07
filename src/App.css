@@ -1,4 +1,69 @@
-/* App.css cleared to avoid conflicting styles */
+/* App.css */
 .app {
   width: 100%;
+}
+
+/* --- White Flip Card Design --- */
+.white-flip-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.white-flip-card {
+  width: 70px;
+  height: 80px;
+  background: linear-gradient(to bottom, #ffffff 0%, #f1f5f9 100%);
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  /* Slate 900 */
+  font-family: 'Inter', sans-serif;
+  /* Ensure monospaced feel or tabular nums if possible */
+  position: relative;
+  z-index: 1;
+}
+
+/* The horizontal split line */
+.white-flip-card::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  transform: translateY(-50%);
+}
+
+.white-flip-hinge {
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 12px;
+  background: #94a3b8;
+  /* Slate 400 */
+  border-radius: 2px;
+  transform: translateY(-50%);
+  z-index: 2;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.hinge-left {
+  left: -3px;
+}
+
+.hinge-right {
+  right: -3px;
 }

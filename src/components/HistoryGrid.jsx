@@ -170,18 +170,26 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
             <div style={{
                 width: '100%',
                 height: '100%',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                color: 'var(--text-primary)',
-                background: 'var(--surface-2)',
-                padding: '0 1.5rem',
                 display: 'flex',
                 alignItems: 'center',
-                borderBottom: '1px solid var(--border-subtle)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
+                padding: '0 1rem',
+                background: '#fff',
+                borderBottom: '1px solid var(--border-subtle)'
             }}>
-                📅 {params.data.dateLabel}
+                <div style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    color: 'var(--primary-color)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    width: '100%'
+                }}>
+                    {params.data.dateLabel}
+                    <div style={{ height: '1px', flex: 1, background: 'var(--border-subtle)', opacity: 0.5 }}></div>
+                </div>
             </div>
         );
     };
@@ -193,7 +201,37 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
             headerName: 'Session',
             width: 90,
             sortable: false, // Sorting handled pre-grid
-            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' }
+            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
+            cellRenderer: (p) => {
+                const val = String(p.value).padStart(2, '0');
+                return (
+                    // Mini Flip Card
+                    <div style={{
+                        width: '32px',
+                        height: '36px',
+                        background: 'linear-gradient(to bottom, #ffffff 0%, #f1f5f9 100%)',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '4px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        color: '#0f172a',
+                        fontFamily: "'Inter', sans-serif",
+                        position: 'relative'
+                    }}>
+                        {/* Horizontal Line */}
+                        <div style={{
+                            position: 'absolute', top: '50%', left: 0, right: 0, height: '1px',
+                            background: 'rgba(0,0,0,0.05)', boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
+                            transform: 'translateY(-50%)'
+                        }}></div>
+
+                        {/* Value relative z-index to sit above line */}
+                        <span style={{ position: 'relative', zIndex: 1 }}>{val}</span>
+                    </div>
+                );
+            }
         },
         {
             field: 'startTime',
@@ -333,7 +371,6 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
         resizable: true,
         sortable: false, // Disable default sorting to preserve group order
         filter: false,
-        suppressMenu: true,
         cellStyle: { display: 'flex', alignItems: 'center' }
     }), []);
 
