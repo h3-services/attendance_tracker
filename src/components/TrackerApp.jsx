@@ -6,11 +6,12 @@ import HistoryGrid from './HistoryGrid';
 import EndSessionModal from './EndSessionModal';
 import EditSessionModal from './EditSessionModal';
 import StatsCard from './StatsCard';
-import { fetchData, createRecord, updateRecord, deleteRecord } from '../api';
+import { fetchData, createRecord, updateRecord, deleteRecord, syncApprovedRecords, createAuthRecord } from '../api';
 import LoginPage from './LoginPage';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
 import CheckInModal from './CheckInModal';
+import AdminDashboard from './AdminDashboard';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 const TrackerApp = () => {
@@ -19,10 +20,25 @@ const TrackerApp = () => {
     const [activeSession, setActiveSession] = useState(null);
     const [isEndModalOpen, setIsEndModalOpen] = useState(false);
     const [todayStats, setTodayStats] = useState({ seconds: 0, count: 0 });
+    const [syncing, setSyncing] = useState(false);
+
+    // History Date Filter (default to today)
+    const getTodayString = () => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    };
+    const [historyDate, setHistoryDate] = useState(getTodayString());
+
+    // Filter sessions by selected date for history
+    const filteredHistorySessions = sessions.filter(s => {
+        if (!s.date || !historyDate) return false;
+        return s.date === historyDate;
+    });
 
     // User State
     const [userName, setUserName] = useState(localStorage.getItem('appUserName') || '');
     const [userEmail, setUserEmail] = useState(localStorage.getItem('appUserEmail') || '');
+    const [userRole, setUserRole] = useState(localStorage.getItem('appUserRole') || 'user');
 
     // Edit Modal State
     const [editSession, setEditSession] = useState(null);
@@ -129,6 +145,11 @@ const TrackerApp = () => {
     useEffect(() => {
         if (userName) {
             loadData();
+
+            // Auto-redirect admin users to admin dashboard on page load
+            if (userRole === 'admin' && location.pathname === '/') {
+                navigate('/admin');
+            }
         }
 
         // Check local storage for active session
@@ -141,7 +162,7 @@ const TrackerApp = () => {
                 localStorage.removeItem('activeWorkSession');
             }
         }
-    }, [userName]); // Reload if username changes
+    }, [userName, userRole]); // Reload if username or role changes
 
     // 2. Recalculate Stats when sessions change
     useEffect(() => {
@@ -183,32 +204,18 @@ const TrackerApp = () => {
     const loadData = async () => {
         if (!userName) return;
 
-
-
         setLoading(true);
         try {
-            // Filter: Current User AND Matches Today's Date (Strict Manual System Date)
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const todayStr = `${year}-${month}-${day}`;
+            console.log("Fetching All Data for:", { userName });
 
-            console.log("Fetching Data for:", { userName, date: todayStr });
-
-            // Pass filters to backend API
+            // Fetch ALL sessions for the user (no date filter)
             const data = await fetchData({
-                userName: userName,
-                date: todayStr
+                userName: userName
             });
 
-            // Backend now handles the filtering, so we can use data directly.
-            // But we still apply a safety filter just in case the backend code 
-            // wasn't updated/deployed yet, to prevent showing wrong data.
+            // Filter to ensure only current user's sessions
             const mySessions = data.filter(s => {
                 if (s.userName && s.userName !== userName) return false;
-                // Note: We don't strictly filter date here to allow for slight timezone diffs 
-                // if backend returns them, but ideally backend handles it.
                 return true;
             });
 
@@ -556,8 +563,8 @@ const TrackerApp = () => {
             setSessions(prev => [record2, record1, ...prev]);
 
             try {
-                await createRecord(record1);
-                await createRecord(record2);
+                await createAuthRecord(record1);
+                await createAuthRecord(record2);
                 loadData();
             } catch (e) {
                 alert("Split save error: " + e.message);
@@ -571,7 +578,7 @@ const TrackerApp = () => {
             setSessions(prev => [newRecord, ...prev]);
 
             try {
-                const res = await createRecord(formData);
+                const res = await createAuthRecord(formData);
                 if (res && res.recordId) {
                     setSessions(prev => prev.map(s =>
                         s.recordId === tempId ? { ...s, recordId: res.recordId } : s
@@ -703,8 +710,15 @@ const TrackerApp = () => {
     const handleLogin = (user) => {
         setUserName(user.name);
         setUserEmail(user.email);
+        setUserRole(user.role || 'user');
         localStorage.setItem('appUserName', user.name);
         localStorage.setItem('appUserEmail', user.email);
+        localStorage.setItem('appUserRole', user.role || 'user');
+
+        // Redirect admin users to admin dashboard
+        if (user.role === 'admin') {
+            navigate('/admin');
+        }
     };
 
     const handleLogoutClick = () => {
@@ -714,9 +728,26 @@ const TrackerApp = () => {
     const confirmLogout = () => {
         setUserName('');
         setUserEmail('');
+        setUserRole('user');
         localStorage.removeItem('appUserName');
         localStorage.removeItem('appUserEmail');
+        localStorage.removeItem('appUserRole');
         setIsLogoutModalOpen(false);
+        navigate('/'); // Go to login page
+    };
+
+    // Sync approved records from Auth API to main data
+    const handleSyncApproved = async () => {
+        setSyncing(true);
+        try {
+            const result = await syncApprovedRecords();
+            alert(`✅ ${result.message}`);
+            loadData(); // Reload data after sync
+        } catch (error) {
+            alert(`❌ Sync failed: ${error.message}`);
+        } finally {
+            setSyncing(false);
+        }
     };
 
 
@@ -750,9 +781,23 @@ const TrackerApp = () => {
         return <LoginPage onLogin={handleLogin} />;
     }
 
+    // If admin page, render AdminDashboard full screen (separate from DashboardLayout)
+    if (location.pathname === '/admin') {
+        return (
+            <>
+                <AdminDashboard onBack={() => navigate('/')} onLogout={confirmLogout} />
+                <LogoutConfirmationModal
+                    isOpen={isLogoutModalOpen}
+                    onClose={() => setIsLogoutModalOpen(false)}
+                    onConfirm={confirmLogout}
+                />
+            </>
+        );
+    }
+
     return (
         <DashboardLayout
-            userProfile={{ name: userName || 'Guest', role: 'Developer' }}
+            userProfile={{ name: userName || 'Guest', role: userRole }}
             onEditProfile={handleLogoutClick}
         >
             <div className="fade-in-entry">
@@ -826,6 +871,26 @@ const TrackerApp = () => {
                             >
                                 <span>View History ➜</span>
                             </button>
+
+                            <button
+                                onClick={() => navigate('/admin')}
+                                style={{
+                                    padding: '0.75rem 1.25rem',
+                                    backgroundColor: '#8b5cf6',
+                                    color: 'white',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    boxShadow: 'var(--shadow-md)'
+                                }}
+                            >
+                                <span>⚙️</span>
+                                Admin
+                            </button>
                         </div>
                     ) : (
                         <button
@@ -867,11 +932,36 @@ const TrackerApp = () => {
                         </div>
                     } />
                     <Route path="/history" element={
-                        <HistoryGrid
-                            sessions={sessions}
-                            onEdit={handleEditClick}
-                            onDelete={initiateDelete}
-                        />
+                        <div>
+                            {/* Date Filter */}
+                            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Date:</label>
+                                <input
+                                    type="date"
+                                    value={historyDate}
+                                    onChange={(e) => setHistoryDate(e.target.value)}
+                                    style={{
+                                        padding: '0.6rem 1rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--border-color)',
+                                        fontSize: '1rem',
+                                        fontWeight: 500,
+                                        cursor: 'pointer'
+                                    }}
+                                />
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                    Showing {filteredHistorySessions.length} record(s)
+                                </span>
+                            </div>
+                            <HistoryGrid
+                                sessions={filteredHistorySessions}
+                                onEdit={handleEditClick}
+                                onDelete={initiateDelete}
+                            />
+                        </div>
+                    } />
+                    <Route path="/admin" element={
+                        <AdminDashboard onBack={() => navigate('/')} />
                     } />
                 </Routes>
             </div>

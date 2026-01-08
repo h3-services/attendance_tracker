@@ -96,7 +96,10 @@ function handleRequest(e) {
         rows.push(r);
       }
       
-      return responseJSON(rows);
+      return responseJSON({
+        status: 'success',
+        data: rows
+      });
     }
 
 
@@ -198,6 +201,13 @@ function handleRequest(e) {
            .setVerticalAlignment("middle")
            .setWrap(true);
 
+      // Update Daily Summary
+      try {
+        updateDailySummary(ss, requestData.date, requestData.userName, requestData.duration);
+      } catch (e) {
+        console.error("Summary Update Failed: " + e.toString());
+      }
+
       return responseJSON({ status: 'success', message: 'Record created in ' + targetSheetName, recordId: newId });
     }
 
@@ -287,6 +297,129 @@ function handleRequest(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// Helper: Aggregates daily duration
+function updateDailySummary(ss, dateStr, userName, durationStr) {
+  if (!dateStr || !userName || !durationStr) return;
+
+  // Parse Date for Sheet Name
+  var parts = dateStr.split('-'); // YYYY-MM-DD
+  var dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var sheetName = monthNames[dateObj.getMonth()] + " " + dateObj.getFullYear(); // e.g. "January 2026"
+
+  // Get Sheet (Should exist because we just added data to it, but handle safety)
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return; // Should not happen if called after create
+
+  // Summary Table Configuration (Columns O, P, Q -> 15, 16, 17)
+  var startCol = 15;
+  
+  // 1. Ensure Headers exist
+  var headerRange = sheet.getRange(1, startCol, 1, 3);
+  if (headerRange.getValue() !== "Summary Date") {
+    headerRange.setValues([["Summary Date", "User", "Total Mins"]]);
+    headerRange.setFontWeight("bold").setBackground("#e2e8f0").setBorder(true, true, true, true, true, true);
+  }
+
+  // Parse Duration
+  var durationToAdd = parseInt(durationStr);
+  if (isNaN(durationToAdd)) durationToAdd = 0;
+
+  // 2. Read existing Summary Data (Column O to Q)
+  // We need to find the last row relative to THESE columns, not the whole sheet
+  var maxRows = sheet.getMaxRows();
+  var summaryData = sheet.getRange(2, startCol, maxRows - 1, 3).getValues(); // Read all potential rows
+  
+  var targetRowIndex = -1; // 0-based relative to summaryData
+  var firstEmptyRowIndex = -1;
+
+  for (var i = 0; i < summaryData.length; i++) {
+    var sDate = summaryData[i][0];
+    var sUser = summaryData[i][1];
+    
+    // Check for empty row to identify end of data
+    if (!sDate && !sUser && firstEmptyRowIndex === -1) {
+      firstEmptyRowIndex = i;
+    }
+    // Stop scanning if we hit empty space and we haven't found a match yet? 
+    // No, technically there shouldn't be gaps, so first empty is safe.
+    if (!sDate && !sUser) break; 
+
+    // Normalize Date Match
+    var sDateStr = sDate instanceof Date ? 
+       Utilities.formatDate(sDate, Session.getScriptTimeZone(), "yyyy-MM-dd") : sDate;
+
+    if (sDateStr === dateStr && sUser === userName) {
+      targetRowIndex = i;
+      break;
+    }
+  }
+
+  // 3. Update or Append
+  if (targetRowIndex !== -1) {
+    // Update existing
+    var existingVal = summaryData[targetRowIndex][2];
+    var currentTotal = parseDurationToMinutes(existingVal);
+    var newTotal = currentTotal + durationToAdd;
+    
+    // Write formatted string
+    var formattedTotal = formatDuration(newTotal);
+    sheet.getRange(targetRowIndex + 2, startCol + 2).setValue(formattedTotal);
+  } else {
+    // Append New
+    if (firstEmptyRowIndex === -1) {
+        // Sheet is full? Unlikely with maxRows, but safety
+        firstEmptyRowIndex = summaryData.length; 
+    }
+    // Row in sheet = Header(1) + SliceStart(0->2) + Index
+    var rowToWrite = firstEmptyRowIndex + 2;
+    sheet.getRange(rowToWrite, startCol).setValue(dateStr);
+    sheet.getRange(rowToWrite, startCol + 1).setValue(userName);
+    
+    var formattedTotal = formatDuration(durationToAdd);
+    sheet.getRange(rowToWrite, startCol + 2).setValue(formattedTotal);
+    
+    // Formatting
+    sheet.getRange(rowToWrite, startCol, 1, 3)
+         .setHorizontalAlignment("center")
+         .setBorder(null, true, null, true, null, null); // Vertical borders
+  }
+}
+
+// Helper: 1 hr 30 min -> 90
+function parseDurationToMinutes(val) {
+  if (!val) return 0;
+  if (typeof val === 'number') return val;
+  
+  var str = val.toString().toLowerCase();
+  var total = 0;
+  
+  // Extract hours
+  var hoursMatch = str.match(/(\d+)\s*hr/);
+  if (hoursMatch) total += parseInt(hoursMatch[1]) * 60;
+  
+  // Extract minutes
+  var minsMatch = str.match(/(\d+)\s*min/);
+  if (minsMatch) total += parseInt(minsMatch[1]);
+  
+  // Fallback: if just a number string "90"
+  if (total === 0 && !isNaN(parseInt(str))) {
+    total = parseInt(str);
+  }
+  
+  return total;
+}
+
+// Helper: 90 -> 1 hr 30 min
+function formatDuration(totalMins) {
+  var h = Math.floor(totalMins / 60);
+  var m = totalMins % 60;
+  
+  if (h > 0 && m > 0) return h + " hr " + m + " min";
+  if (h > 0) return h + " hr";
+  return m + " min";
 }
 
 function responseJSON(data) {

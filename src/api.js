@@ -22,6 +22,9 @@ const getUrl = (action) => {
   return `${API_URL}${separator}action=${action}`;
 };
 const normalizeData = (data) => {
+  if (data.status === 'success' && Array.isArray(data.data)) {
+    data = data.data;
+  }
   if (!Array.isArray(data)) return [];
   return data.map(item => ({
     recordId: item.recordId || item['Record ID'] || item['record id'],
@@ -83,7 +86,9 @@ const cleanParams = (data) => {
   return cleaned;
 };
 
+// Create record in Main Data Sheet
 export const createRecord = async (data) => {
+
   try {
     const params = new URLSearchParams({
       ...cleanParams(data),
@@ -175,12 +180,13 @@ const authRequest = async (data) => {
   }
 };
 
-export const registerUser = async (email, password, name) => {
+export const registerUser = async (email, password, name, role = 'user') => {
   return await authRequest({
     action: 'register',
     email,
     password,
-    name
+    name,
+    role
   });
 };
 
@@ -190,4 +196,185 @@ export const loginUser = async (email, password) => {
     email,
     password
   });
+};
+
+// Create record in Auth API (Requests sheet)
+// Create record in Auth API (Requests sheet)
+export const createAuthRecord = async (data) => {
+  if (!AUTH_API_URL) {
+    throw new Error("Auth API URL not configured");
+  }
+
+  try {
+    const params = new URLSearchParams({
+      ...cleanParams(data),
+      action: 'create'
+    });
+
+    const urlWithParams = `${AUTH_API_URL}${AUTH_API_URL.includes('?') ? '&' : '?'}${params.toString()}`;
+
+    console.log("Creating Auth Record URL:", urlWithParams);
+
+    const response = await fetch(urlWithParams, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+    });
+
+    const text = await response.text();
+    const json = JSON.parse(text);
+
+    if (json.status === 'error') {
+      throw new Error(json.message);
+    }
+    return json;
+  } catch (error) {
+    console.error("Error creating auth record:", error);
+    throw error;
+  }
+};
+
+// Delete record from Auth API (Requests sheet)
+export const deleteAuthRecord = async (recordId, sheetName = 'Requests') => {
+  if (!AUTH_API_URL) {
+    throw new Error("Auth API URL not configured");
+  }
+
+  try {
+    const params = new URLSearchParams({
+      action: 'delete',
+      recordId: recordId,
+      sheetName: sheetName
+    });
+
+    const urlWithParams = `${AUTH_API_URL}${AUTH_API_URL.includes('?') ? '&' : '?'}${params.toString()}`;
+
+    console.log("Deleting Auth Record URL:", urlWithParams);
+
+    const response = await fetch(urlWithParams, {
+      method: "POST", // Using POST for state-changing operations
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+    });
+
+    const text = await response.text();
+    const json = JSON.parse(text);
+
+    if (json.status === 'error') {
+      throw new Error(json.message);
+    }
+    return json;
+  } catch (error) {
+    console.error("Error deleting auth record:", error);
+    throw error;
+  }
+};
+
+// ==========================================
+// SYNC API - Transfer approved records
+// ==========================================
+
+// Fetch all data from Auth API
+export const fetchAuthData = async () => {
+  if (!AUTH_API_URL) {
+    throw new Error("Auth API URL not configured");
+  }
+
+  try {
+    const response = await fetch(AUTH_API_URL);
+    const text = await response.text();
+    const json = JSON.parse(text);
+
+    if (json.status === 'error') {
+      throw new Error(json.message);
+    }
+    return json;
+  } catch (error) {
+    console.error("Fetch Auth Data Error:", error);
+    throw error;
+  }
+};
+
+// Sync approved records from Auth API to main data script
+export const syncApprovedRecords = async () => {
+  try {
+    // Step 1: Fetch data from Auth API
+    const authData = await fetchAuthData();
+
+    // Get sessions array (handle both formats)
+    const sessions = authData.sessions || (Array.isArray(authData) ? authData : []);
+
+    // Step 2: Filter only approved records
+    const approvedRecords = sessions.filter(record =>
+      record.approvedState &&
+      record.approvedState.toLowerCase() === 'completed'
+    );
+
+    if (approvedRecords.length === 0) {
+      return {
+        status: 'success',
+        message: 'No approved records to sync',
+        syncedCount: 0
+      };
+    }
+
+    // Step 3: Fetch existing data from main script to calculate proper session numbers
+    const existingData = await fetchData();
+
+    // Track session counts per date
+    const sessionCountByDate = {};
+
+    // Count existing sessions per date
+    existingData.forEach(record => {
+      if (record.date) {
+        const dateKey = record.date;
+        const sessionNum = parseInt(record.sessionNo) || 0;
+        if (!sessionCountByDate[dateKey] || sessionNum > sessionCountByDate[dateKey]) {
+          sessionCountByDate[dateKey] = sessionNum;
+        }
+      }
+    });
+
+    // Step 4: Send each approved record with calculated session numbers
+    let syncedCount = 0;
+    const errors = [];
+
+    for (const record of approvedRecords) {
+      try {
+        const dateKey = record.date;
+
+        // Calculate next session number for this date
+        const currentMax = sessionCountByDate[dateKey] || 0;
+        const nextSessionNo = currentMax + 1;
+        sessionCountByDate[dateKey] = nextSessionNo; // Update for next record
+
+        await createRecord({
+          date: record.date,
+          userName: record.userName,
+          sessionNo: nextSessionNo.toString(), // Use calculated session number
+          startTime: record.startTime,
+          endTime: record.endTime,
+          duration: record.duration,
+          workDescription: record.workDescription,
+          project: record.project,
+          category: record.category,
+          status: record.status,
+          approvedState: record.approvedState,
+          approvedBy: record.approvedBy || ''
+        });
+        syncedCount++;
+      } catch (err) {
+        errors.push(`Record ${record.recordId}: ${err.message}`);
+      }
+    }
+
+    return {
+      status: 'success',
+      message: `Synced ${syncedCount} of ${approvedRecords.length} approved records`,
+      totalApproved: approvedRecords.length,
+      syncedCount,
+      errors
+    };
+  } catch (error) {
+    console.error("Sync Error:", error);
+    throw error;
+  }
 };
