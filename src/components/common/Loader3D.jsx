@@ -192,54 +192,8 @@ let Canvas, useFrame, Box, Cylinder, Sphere, Html, Float;
 let threeJsLoaded = false;
 
 const Loader3D = () => {
-    const [webGLSupported, setWebGLSupported] = useState(null);
-    const [ThreeComponents, setThreeComponents] = useState(null);
-
-    useEffect(() => {
-        const supported = isWebGLSupported();
-        setWebGLSupported(supported);
-
-        if (supported) {
-            // Dynamically import Three.js only if WebGL is supported
-            Promise.all([
-                import('@react-three/fiber'),
-                import('@react-three/drei')
-            ]).then(([fiber, drei]) => {
-                setThreeComponents({
-                    Canvas: fiber.Canvas,
-                    useFrame: fiber.useFrame,
-                    Box: drei.Box,
-                    Cylinder: drei.Cylinder,
-                    Sphere: drei.Sphere,
-                    Html: drei.Html,
-                    Float: drei.Float
-                });
-            }).catch(() => {
-                setWebGLSupported(false);
-            });
-        }
-    }, []);
-
-    // Still loading check
-    if (webGLSupported === null) {
-        return <CSSCarLoader />;
-    }
-
-    // WebGL not supported - use CSS fallback
-    if (!webGLSupported || !ThreeComponents) {
-        return <CSSCarLoader />;
-    }
-
-    // WebGL supported - render Three.js scene
-    const { Canvas: ThreeCanvas } = ThreeComponents;
-
-    return (
-        <div style={{ width: '100%', height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ThreeCanvas camera={{ position: [3, 2, 4], fov: 50 }}>
-                <ThreeScene ThreeComponents={ThreeComponents} />
-            </ThreeCanvas>
-        </div>
-    );
+    // Using CSS loader for maximum stability (no GPU/WebGL context issues)
+    return <CSSCarLoader />;
 };
 
 // Three.js scene component

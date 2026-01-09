@@ -322,8 +322,7 @@ function updateDailySummary(ss, dateStr, userName, durationStr) {
   }
 
   // Parse Duration
-  var durationToAdd = parseInt(durationStr);
-  if (isNaN(durationToAdd)) durationToAdd = 0;
+  var durationToAdd = parseDurationToMinutes(durationStr);
 
   // 2. Read existing Summary Data (Column O to Q)
   // We need to find the last row relative to THESE columns, not the whole sheet
@@ -387,27 +386,73 @@ function updateDailySummary(ss, dateStr, userName, durationStr) {
 }
 
 // Helper: 1 hr 30 min -> 90
+// Helper: Parses various duration formats into Total Minutes (Integer or Decimal)
 function parseDurationToMinutes(val) {
   if (!val) return 0;
   if (typeof val === 'number') return val;
   
-  var str = val.toString().toLowerCase();
+  var str = val.toString().toUpperCase().trim();
+  
+  // 1. Try parsing "HH:MM:SS" or "00 HRS : 00 MIN : 00 SEC" format directly by stripping labels
+  // Remove text characters to see if we have colon separated numbers
+  var cleanStr = str.replace(/HRS/g, '')
+                    .replace(/HR/g, '')
+                    .replace(/MINS/g, '')
+                    .replace(/MIN/g, '')
+                    .replace(/SECS/g, '')
+                    .replace(/SEC/g, '')
+                    .replace(/IS/g, '') // Handle "IS :" artifact
+                    .replace(/\s/g, ''); // Remove spaces
+  
+  // Check if it looks like HH:MM or HH:MM:SS (e.g., "00:00:46")
+  if (cleanStr.includes(':')) {
+    var parts = cleanStr.split(':').map(function(p) { return parseFloat(p) || 0; });
+    var totalMins = 0;
+    
+    if (parts.length === 3) {
+       // HH:MM:SS
+       totalMins += parts[0] * 60;
+       totalMins += parts[1];
+       totalMins += parts[2] / 60;
+    } else if (parts.length === 2) {
+       // MM:SS or HH:MM? 
+       // If original string had "HRS" likely HH:MM:SS logic applied but parts missing.
+       // Usually "00:25" is MM:SS in this context if "IS : MIN" was removed.
+       // But let's assume standard time format if ambiguous.
+       // If it was "1 hr 30 min", it wouldn't be here (no colons usually).
+       
+       // Context specific: The problematic format "00 HRS : 00 MIN : 46 SEC" becomes "00:00:46" -> 3 parts.
+       // "00 HRS : 15 MIN" -> "00:15" -> 2 parts (HH:MM).
+       totalMins += parts[0] * 60;
+       totalMins += parts[1];
+    }
+    return Math.round(totalMins); // Return integer minutes for simplicity? Or keep decimal?
+    // User header says "Total Mins". Rounding to nearest minute is safer for "Summary".
+  }
+
+  // 2. Fallback to Regex for "1 hr 30 min" text format if no colons
   var total = 0;
   
   // Extract hours
-  var hoursMatch = str.match(/(\d+)\s*hr/);
+  var hoursMatch = str.match(/(\d+)\s*H/); // Matches H, HR, HRS
   if (hoursMatch) total += parseInt(hoursMatch[1]) * 60;
   
   // Extract minutes
-  var minsMatch = str.match(/(\d+)\s*min/);
+  var minsMatch = str.match(/(\d+)\s*M/); // Matches M, MIN, MINS
   if (minsMatch) total += parseInt(minsMatch[1]);
   
-  // Fallback: if just a number string "90"
-  if (total === 0 && !isNaN(parseInt(str))) {
-    total = parseInt(str);
+  // Extract seconds (optional, rounds up?)
+  var secsMatch = str.match(/(\d+)\s*S/); // Matches S, SEC, SECS
+  if (secsMatch) {
+     total += parseInt(secsMatch[1]) / 60;
   }
   
-  return total;
+  // If just a number "90"
+  if (total === 0 && !isNaN(parseFloat(str)) && !str.includes(':')) {
+    total = parseFloat(str);
+  }
+  
+  return Math.round(total);
 }
 
 // Helper: 90 -> 1 hr 30 min

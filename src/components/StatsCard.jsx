@@ -1,37 +1,22 @@
-
 import React from 'react';
 
 const DigitalUnit = ({ value, label }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-        <div style={{
-            background: 'white',
-            border: '1px solid #e2e8f0', // Slate 200
-            borderRadius: '12px',
-            padding: '1rem 0.5rem',
-            minWidth: '60px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-        }}>
+    <div className="flex flex-col items-center gap-2">
+        <div className="relative bg-white border border-slate-200 rounded-lg w-[80px] h-[90px] flex items-center justify-center shadow-lg">
+            {/* Center Line */}
+            <div className="absolute w-full h-px bg-slate-100 top-1/2 -translate-y-1/2"></div>
 
-            <span style={{
-                fontSize: '2rem',
-                fontWeight: 700,
-                color: '#1e293b', // Dark Slate Text
-                fontFamily: "'Inter', sans-serif",
-                lineHeight: 1
-            }}>
+            {/* Left Hinge */}
+            <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-[4px] h-[12px] bg-slate-400 rounded-sm"></div>
+
+            {/* Right Hinge */}
+            <div className="absolute right-[-2px] top-1/2 -translate-y-1/2 w-[4px] h-[12px] bg-slate-400 rounded-sm"></div>
+
+            <span className="text-5xl font-bold text-slate-800 font-sans z-10">
                 {value.toString().padStart(2, '0')}
             </span>
         </div>
-        <span style={{
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            color: '#64748b',
-            letterSpacing: '1px'
-        }}>
+        <span className="text-[0.7rem] font-bold text-slate-500 tracking-widest uppercase">
             {label}
         </span>
     </div>
@@ -49,85 +34,37 @@ const StatsCard = ({ totalSeconds, sessionCount }) => {
     const { h, m, s } = formatTime(totalSeconds);
 
     return (
-        <div style={{
-            borderRadius: '24px',
-            padding: '1.5rem', // Reduced padding
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100%',
-            boxSizing: 'border-box',
-            background: 'white',
-            border: '1px solid #e2e8f0', // Slate 200
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', // Stronger shadow
-            position: 'relative',
-            overflow: 'hidden'
-        }}>
+        <div className="rounded-3xl py-8 px-6 flex flex-col justify-center items-center w-full h-auto min-h-[50%] box-border bg-white border border-slate-200 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] relative">
             {/* Header */}
-            <h3 style={{
-                margin: '0 0 1.5rem 0',
-                fontSize: '0.85rem',
-                color: '#64748b', // Slate 500
-                textTransform: 'uppercase',
-                letterSpacing: '2px',
-                fontWeight: 700,
-                textAlign: 'center'
-            }}>
+            <h3 className="mb-6 text-sm text-slate-500 uppercase tracking-widest font-bold text-center">
                 Daily Progress
             </h3>
 
             {/* Display Area */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.2rem' }}>
+            <div className="flex items-center justify-center gap-6">
 
                 {/* Section Indicator */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{
-                        width: '70px', // Reduced
-                        height: '70px', // Reduced
-                        borderRadius: '50%',
-                        background: 'white',
-                        border: '1px solid #e2e8f0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        position: 'relative',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                    }}>
-                        <div style={{
-                            position: 'absolute', inset: '3px', borderRadius: '50%',
-                            border: '1px dashed #cbd5e1', // Slate 300
-                            opacity: 0.5
-                        }}></div>
-                        <span style={{
-                            fontSize: '2rem',
-                            fontWeight: 800,
-                            color: '#1e293b', // Dark Slate
-                            fontFamily: "'Inter', sans-serif"
-                        }}>
+                <div className="flex flex-col items-center gap-2">
+                    <div className="w-[90px] h-[90px] rounded-full bg-white border border-slate-200 flex items-center justify-center relative shadow-sm">
+                        <div className="absolute inset-[4px] rounded-full border border-dashed border-slate-300 opacity-50"></div>
+                        <span className="text-[2.5rem] font-extrabold text-slate-800 font-sans">
                             {sessionCount}
                         </span>
                     </div>
-                    <span style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: '#64748b',
-                        letterSpacing: '1px',
-                        textTransform: 'uppercase'
-                    }}>
+                    <span className="text-xs font-bold text-slate-500 tracking-wide uppercase">
                         SECTION
                     </span>
                 </div>
 
                 {/* Divider */}
-                <div style={{ width: '1px', height: '60px', background: '#f1f5f9', margin: '0 0.5rem' }}></div>
+                <div className="w-px h-[100px] bg-slate-100 mx-2"></div>
 
                 {/* Time Units */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="flex items-center gap-3">
                     <DigitalUnit value={h} label="HRS" />
-                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#94a3b8', marginTop: '-1.5rem' }}>:</div>
+                    <div className="text-2xl font-bold text-slate-300 -mt-8">:</div>
                     <DigitalUnit value={m} label="MIN" />
-                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#94a3b8', marginTop: '-1.5rem' }}>:</div>
+                    <div className="text-2xl font-bold text-slate-300 -mt-8">:</div>
                     <DigitalUnit value={s} label="SEC" />
                 </div>
             </div>

@@ -43,7 +43,7 @@ const TrackerApp = () => {
     // History Date Filter (default to today)
     const getTodayString = () => {
         const now = new Date();
-        return `${now.getFullYear()} -${String(now.getMonth() + 1).padStart(2, '0')} -${String(now.getDate()).padStart(2, '0')} `;
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     };
     const [historyDate, setHistoryDate] = useState(getTodayString());
 
@@ -868,97 +868,111 @@ const TrackerApp = () => {
                     {/* Add Record Button (Visible on both Dashboard & History) */}
                     {/* Add Record Button Removed */}
 
-                    {location.pathname === '/' ? (
+                    {location.pathname === '/' && (
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <button
                                 onClick={handleManualAdd}
                                 style={{
-                                    padding: '0.75rem 1.25rem',
-                                    background: 'var(--primary-color)',
+                                    padding: '0.6rem 1.2rem',
+                                    background: 'linear-gradient(145deg, #334155, #1e293b)',
                                     color: 'white',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    fontWeight: 600,
+                                    borderRadius: '10px',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    fontWeight: 700,
+                                    fontSize: '0.85rem',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '0.5rem',
-                                    boxShadow: 'var(--shadow-sm)',
-                                    transition: 'transform 0.1s ease',
+                                    boxShadow: '0 4px 6px rgba(15, 23, 42, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+                                    transition: 'all 0.2s ease',
+                                    letterSpacing: '0.5px'
                                 }}
-                                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
-                                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                    e.currentTarget.style.boxShadow = '0 6px 12px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255,255,255,0.1)';
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 4px 6px rgba(15, 23, 42, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)';
+                                }}
                             >
-                                <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span>
-                                Add Record
+                                <span style={{ fontSize: '1.1rem', lineHeight: 0.5, marginBottom: '2px' }}>+</span>
+                                ADD RECORD
                             </button>
+
                             <button
                                 onClick={loadData}
                                 disabled={loading}
                                 style={{
-                                    padding: '0.75rem 1rem',
-                                    backgroundColor: 'var(--card-bg)', // Centralized var
-                                    color: 'var(--text-secondary)',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    fontWeight: 600,
+                                    padding: '0.6rem 1rem',
+                                    backgroundColor: 'white',
+                                    color: '#475569',
+                                    borderRadius: '10px',
+                                    border: '1px solid #e2e8f0',
+                                    fontWeight: 700,
+                                    fontSize: '0.85rem',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '0.5rem',
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                    letterSpacing: '0.5px'
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--card-bg)'}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                    e.currentTarget.style.borderColor = '#cbd5e1';
+                                    e.currentTarget.style.color = '#1e293b';
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.backgroundColor = 'white';
+                                    e.currentTarget.style.borderColor = '#e2e8f0';
+                                    e.currentTarget.style.color = '#475569';
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                }}
                             >
-                                <span style={{ fontSize: '1.1rem', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-                                {loading ? 'Syncing...' : 'Refresh'}
+                                <span style={{ fontSize: '0.9rem', animation: loading ? 'spin 1s linear infinite' : 'none', fontWeight: 'bold' }}>↻</span>
+                                {loading ? '...' : 'REFRESH'}
                             </button>
-
 
                             <button
                                 onClick={() => navigate('/history')}
                                 style={{
-                                    padding: '0.75rem 1.5rem',
-                                    backgroundColor: 'var(--primary-color)',
+                                    padding: '0.6rem 1.2rem',
+                                    background: 'linear-gradient(145deg, #334155, #1e293b)',
                                     color: 'white',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    fontWeight: 600,
+                                    borderRadius: '10px',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    fontWeight: 700,
+                                    fontSize: '0.85rem',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '0.5rem',
-                                    boxShadow: 'var(--shadow-md)'
+                                    boxShadow: '0 4px 6px rgba(15, 23, 42, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+                                    transition: 'all 0.2s ease',
+                                    letterSpacing: '0.5px'
+                                }}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                    e.currentTarget.style.boxShadow = '0 6px 12px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255,255,255,0.1)';
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 4px 6px rgba(15, 23, 42, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)';
                                 }}
                             >
-                                <span>View History ➜</span>
+                                <span>HISTORY ➜</span>
                             </button>
                         </div>
-                    ) : (
-                        <button
-                            onClick={() => navigate('/')}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: 'var(--card-bg)',
-                                color: 'var(--text-primary)',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}
-                        >
-                            <span>← Back to Tracker</span>
-                        </button>
                     )}
                 </div>
 
                 <Routes>
                     <Route path="/" element={
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'stretch', padding: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1.2fr', gap: '2.5rem', alignItems: 'stretch', padding: '1rem' }}>
                             <TimerCard
                                 activeSession={activeSession}
                                 onStart={handleStartWork}
@@ -976,30 +990,14 @@ const TrackerApp = () => {
                     } />
                     <Route path="/history" element={
                         <div>
-                            {/* Date Filter */}
-                            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Date:</label>
-                                <input
-                                    type="date"
-                                    value={historyDate}
-                                    onChange={(e) => setHistoryDate(e.target.value)}
-                                    style={{
-                                        padding: '0.6rem 1rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--border-color)',
-                                        fontSize: '1rem',
-                                        fontWeight: 500,
-                                        cursor: 'pointer'
-                                    }}
-                                />
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                    Showing {filteredHistorySessions.length} record(s)
-                                </span>
-                            </div>
+                            {/* History Grid (Self Contained Header) */}
                             <HistoryGrid
                                 sessions={filteredHistorySessions}
                                 onEdit={handleEditClick}
                                 onDelete={initiateDelete}
+                                historyDate={historyDate}
+                                setHistoryDate={setHistoryDate}
+                                onBack={() => navigate('/')}
                             />
                         </div>
                     } />

@@ -24,7 +24,7 @@ const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Dev
                 {/* Center Title */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
                     <NavLink to="/" end style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ fontFamily: "'Croissant One', serif", fontWeight: 700, fontSize: '1.5rem' }}>Hope3-Services</span>
+                        <span style={{ fontFamily: "'Croissant One', serif", fontWeight: 700, fontSize: '2.5rem' }}>Hope3-Services</span>
                     </NavLink>
                 </div>
 
@@ -40,9 +40,9 @@ const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Dev
                     <div style={{
                         width: '40px', height: '40px',
                         borderRadius: '50%',
-                        backgroundColor: 'var(--secondary-color)',
+                        backgroundColor: 'var(--primary-color)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'var(--text-secondary)', fontWeight: 600,
+                        color: 'white', fontWeight: 600,
                         border: '2px solid transparent',
                         transition: 'all 0.2s'
                     }}
@@ -58,7 +58,7 @@ const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Dev
             <main style={{
                 flex: 1,
                 width: '100%',
-                maxWidth: '1200px',
+                maxWidth: '1600px',
                 margin: '0 auto',
                 padding: '1rem 2rem', // REDUCED
                 display: 'flex',

@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { Calendar } from 'lucide-react';
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -52,15 +53,6 @@ const ActionMenu = ({ data, onEdit, onDelete }) => {
 
             {isOpen && (
                 <div style={{
-                    position: 'fixed', // Use fixed to avoid clipping in grid cells
-                    right: '40px', // Adjust based on grid layout approximation or use popper.js for robustness
-                    // Simple hack: Since this is inside a relative parent in a grid cell, fixed might be tricky without coords.
-                    // Let's try absolute with high z-index, but grid overflow hidden might clip it.
-                    // AG Grid cells often clip overflow.
-                    // BETTER APPROACH: absolute right: 0, top: 100% zIndex 9999
-                    // IF overflow is issue, might need portal, but for simple request let's try absolute first.
-                    // If clipped, we might need a different styling strategy.
-                    // EDIT: standard absolute dropdown
                     position: 'absolute',
                     top: '80%',
                     right: '10px',
@@ -117,7 +109,7 @@ const ActionMenu = ({ data, onEdit, onDelete }) => {
     );
 };
 
-const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
+const HistoryGrid = ({ sessions, onEdit, onDelete, historyDate, setHistoryDate, onBack }) => {
 
     // Process Data: Sort by Date Desc + Insert Header Rows
     const rowData = useMemo(() => {
@@ -198,45 +190,23 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
     const colDefs = useMemo(() => [
         {
             field: 'sessionNo',
-            headerName: 'Session',
-            width: 90,
-            sortable: false, // Sorting handled pre-grid
+            headerName: 'No',
+            width: 100, // Increased
+            sortable: false,
+            suppressSizeToFit: true,
             cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
             cellRenderer: (p) => {
                 const val = String(p.value).padStart(2, '0');
                 return (
-                    // Mini Flip Card
-                    <div style={{
-                        width: '32px',
-                        height: '36px',
-                        background: 'linear-gradient(to bottom, #ffffff 0%, #f1f5f9 100%)',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '4px',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.9rem',
-                        fontWeight: 700,
-                        color: '#0f172a',
-                        fontFamily: "'Inter', sans-serif",
-                        position: 'relative'
-                    }}>
-                        {/* Horizontal Line */}
-                        <div style={{
-                            position: 'absolute', top: '50%', left: 0, right: 0, height: '1px',
-                            background: 'rgba(0,0,0,0.05)', boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
-                            transform: 'translateY(-50%)'
-                        }}></div>
-
-                        {/* Value relative z-index to sit above line */}
-                        <span style={{ position: 'relative', zIndex: 1 }}>{val}</span>
-                    </div>
+                    <span style={{ fontWeight: 700, color: '#64748b' }}>#{val}</span>
                 );
             }
         },
         {
             field: 'startTime',
-            headerName: 'Start Time',
-            width: 110,
+            headerName: 'Start Time', // Full name
+            width: 150, // Increased significantly
+            suppressSizeToFit: true,
             cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
             valueFormatter: (p) => {
                 if (!p.value) return '-';
@@ -256,10 +226,11 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
         },
         {
             field: 'endTime',
-            headerName: 'End Time',
-            width: 110,
+            headerName: 'End Time', // Full name
+            width: 150, // Increased
+            suppressSizeToFit: true,
             cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
-            valueFormatter: (p) => {
+            valueFormatter: (p) => { // Similar formatter 
                 if (!p.value) return '...';
                 let d;
                 if (String(p.value).includes('T')) {
@@ -278,7 +249,8 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
         {
             field: 'duration',
             headerName: 'Duration',
-            width: 110,
+            width: 220,
+            suppressSizeToFit: true,
             cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' },
             valueFormatter: (p) => p.value ? p.value : '-'
         },
@@ -286,7 +258,7 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
             field: 'workDescription',
             headerName: 'Description',
             flex: 2,
-            minWidth: 200,
+            minWidth: 300,
             wrapText: true,
             autoHeight: true,
             cellStyle: { display: 'flex', alignItems: 'center' },
@@ -295,57 +267,37 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
             )
         },
         {
-            field: 'project',
-            headerName: 'Project',
-            width: 120,
-            cellStyle: { display: 'flex', alignItems: 'center' }
-        },
-        {
-            field: 'category',
-            headerName: 'Category',
-            width: 120,
-            cellStyle: { display: 'flex', alignItems: 'center' }
-        },
-        {
             field: 'status',
             headerName: 'Status',
-            width: 130,
+            width: 160, // Increased
+            suppressSizeToFit: true,
             cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
             cellRenderer: (p) => {
                 const s = String(p.value).toLowerCase();
-                let color = 'gray';
-                if (s === 'completed') color = 'green';
-                if (s === 'in progress') color = 'blue';
+                let bg = '#e2e8f0';
+                let color = '#475569';
+
+                if (s === 'completed') {
+                    bg = '#dcfce7';
+                    color = '#166534';
+                } else if (s === 'in progress') {
+                    bg = '#dbeafe';
+                    color = '#1e40af';
+                }
+
                 return (
                     <span style={{
+                        backgroundColor: bg,
                         color: color,
+                        padding: '4px 12px',
+                        borderRadius: '9999px',
                         fontWeight: 600,
-                        textTransform: 'capitalize'
+                        fontSize: '0.85rem',
+                        textTransform: 'capitalize',
+                        display: 'inline-block',
+                        lineHeight: 1
                     }}>
-                        ● {p.value}
-                    </span>
-                );
-            }
-        },
-        {
-            field: 'approvedState',
-            headerName: 'Approval',
-            width: 130,
-            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
-            cellRenderer: (p) => {
-                const s = String(p.value || 'Pending').toLowerCase();
-                const isApproved = s === 'approved';
-                return (
-                    <span style={{
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        backgroundColor: isApproved ? '#DEF7EC' : '#FEECDC',
-                        color: isApproved ? '#03543E' : '#8A2C0D',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        letterSpacing: '0.5px'
-                    }}>
-                        {String(p.value || 'Pending').toUpperCase()}
+                        {p.value}
                     </span>
                 );
             }
@@ -354,6 +306,7 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
             headerName: '',
             width: 60,
             pinned: 'right', // Pin to right for better UX
+            suppressSizeToFit: true,
             cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }, // Overflow visible for dropdown
             cellRenderer: (p) => (
                 <ActionMenu
@@ -374,49 +327,55 @@ const HistoryGrid = ({ sessions, onEdit, onDelete }) => {
         cellStyle: { display: 'flex', alignItems: 'center' }
     }), []);
 
-    // Empty State
-    if (!sessions || sessions.length === 0) {
-        return (
-            <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '3rem',
-                textAlign: 'center',
-                border: '1px solid #e2e8f0',
-                marginTop: '2rem'
-            }}>
-                <h3 style={{ margin: 0, color: '#64748b' }}>No Sessions Found</h3>
-                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#94a3b8' }}>
-                    Data for today will appear here.
-                </p>
-            </div>
-        );
-    }
+    // Empty State (optional to handle inside grid, but we'll leave it simple for now)
 
     return (
-        <div style={{
-            marginTop: '0.5rem',
-            height: 'calc(100vh - 220px)',
-            width: '100%',
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            border: '1px solid #cbd5e1',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
-        }}>
-            <AgGridReact
-                rowData={rowData} // Use Processed Data
-                columnDefs={colDefs}
-                defaultColDef={defaultColDef}
-                rowHeight={52}
-                headerHeight={48}
-                pagination={true}
-                paginationPageSize={20}
-                context={{ onEdit, onDelete }}
-                // Header Row Config
-                isFullWidthRow={isFullWidthRow}
-                fullWidthCellRenderer={fullWidthCellRenderer}
-            />
+        <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-[24px] border border-border-main shadow-sm" style={{ height: 'calc(100vh - 120px)', marginTop: '-1rem' }}>
+            {/* Header Section */}
+            <div className="p-6 flex justify-between items-center border-b border-border-main bg-white shrink-0">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={onBack}
+                        className="flex items-center gap-2 text-sm font-bold text-text-secondary hover:text-primary transition-colors"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                        <span>←</span> BACK
+                    </button>
+                    <div className="h-6 w-px bg-border-main"></div>
+                    <h2 className="m-0 text-xl font-semibold text-text-main">Record History</h2>
+                </div>
+
+                <div className="flex gap-4 items-center">
+                    <div className="relative flex items-center">
+                        <Calendar size={18} className="absolute left-3 text-text-dim pointer-events-none" />
+                        <input
+                            type="date"
+                            value={historyDate}
+                            onChange={(e) => setHistoryDate(e.target.value)}
+                            className="bg-bg-main pl-10 pr-4 py-2 rounded-full border border-border-main text-[0.9rem] text-text-main outline-none focus:ring-1 focus:ring-primary shadow-sm appearance-none"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="ag-theme-alpine h-full w-full">
+                <AgGridReact
+                    rowData={rowData} // Use Processed Data
+                    columnDefs={colDefs}
+                    defaultColDef={defaultColDef}
+                    rowHeight={60}
+                    headerHeight={50}
+                    theme="legacy"
+                    animateRows={true}
+                    pagination={true}
+                    paginationPageSize={20}
+                    context={{ onEdit, onDelete }}
+                    // Header Row Config
+                    isFullWidthRow={isFullWidthRow}
+                    fullWidthCellRenderer={fullWidthCellRenderer}
+                    overlayNoRowsTemplate="<span style='padding: 1rem;'>No records found for this date</span>"
+                />
+            </div>
         </div>
     );
 };
