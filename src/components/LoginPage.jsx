@@ -46,89 +46,45 @@ const LoginPage = ({ onLogin }) => {
     };
 
     return (
-        <div style={{
-            height: '100vh',
-            width: '100vw',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-            fontFamily: "'Inter', sans-serif"
-        }}>
-            <div style={{
-                background: 'white',
-                padding: '3rem',
-                borderRadius: '16px',
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                width: '100%',
-                maxWidth: '400px',
-                textAlign: 'center'
-            }}>
-                <div style={{ marginBottom: '2rem' }}>
-                    <div style={{
-                        width: '60px',
-                        height: '60px',
-                        background: '#0f172a',
-                        borderRadius: '12px',
-                        margin: '0 auto 1.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '2rem',
-                        color: 'white'
-                    }}>
+        <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 font-sans">
+            <div className="bg-white p-12 rounded-2xl shadow-xl w-full max-w-[400px] text-center border border-slate-100">
+                <div className="mb-8">
+                    <div className="w-[60px] h-[60px] bg-slate-900 rounded-xl mx-auto mb-6 flex items-center justify-center text-3xl text-white shadow-lg">
                         ⚡
                     </div>
-                    <h1 style={{
-                        fontSize: '1.75rem',
-                        fontWeight: 800,
-                        color: '#0f172a',
-                        margin: '0 0 0.5rem 0'
-                    }}>
+                    <h1 className="text-[1.75rem] font-extrabold text-slate-900 mb-2 leading-tight">
                         Welcome Back
                     </h1>
-                    <p style={{
-                        margin: 0,
-                        color: '#64748b',
-                        fontSize: '0.95rem'
-                    }}>
+                    <p className="m-0 text-slate-500 text-[0.95rem]">
                         Enter your credentials to access
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
-                        <label style={labelStyle}>Email Address</label>
+                    <div className="mb-4 text-left">
+                        <label className="block text-[0.85rem] font-semibold text-slate-700 mb-2">Email Address</label>
                         <input
                             type="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             placeholder="name@company.com"
-                            style={inputStyle}
+                            className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all box-border placeholder:text-slate-400"
                         />
                     </div>
 
-                    <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
-                        <label style={labelStyle}>Password</label>
+                    <div className="mb-6 text-left">
+                        <label className="block text-[0.85rem] font-semibold text-slate-700 mb-2">Password</label>
                         <input
                             type="password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             placeholder="••••••••"
-                            style={inputStyle}
+                            className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all box-border placeholder:text-slate-400"
                         />
                     </div>
 
                     {error && (
-                        <div style={{
-                            color: '#ef4444',
-                            fontSize: '0.85rem',
-                            marginBottom: '1rem',
-                            background: '#fef2f2',
-                            padding: '0.5rem',
-                            borderRadius: '6px',
-                            border: '1px solid #fee2e2'
-                        }}>
+                        <div className="text-red-500 text-[0.85rem] mb-4 bg-red-50 p-3 rounded-lg border border-red-100 animate-pulse">
                             {error}
                         </div>
                     )}
@@ -136,49 +92,19 @@ const LoginPage = ({ onLogin }) => {
                     <button
                         type="submit"
                         disabled={loading}
-                        style={{
-                            width: '100%',
-                            padding: '0.85rem',
-                            background: loading ? '#94a3b8' : '#0f172a',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '1rem',
-                            fontWeight: 600,
-                            cursor: loading ? 'wait' : 'pointer',
-                            transition: 'all 0.2s',
-                            boxShadow: '0 4px 6px -1px rgba(15, 23, 42, 0.2)'
-                        }}
+                        className={`w-full py-3.5 rounded-lg text-white text-base font-bold shadow-md transition-all border-none
+                            ${loading ? 'bg-slate-400 cursor-wait' : 'bg-slate-900 hover:bg-slate-800 cursor-pointer hover:-translate-y-0.5 active:translate-y-0 shadow-slate-900/20'}`}
                     >
                         {loading ? 'Processing...' : 'Sign In'}
                     </button>
                 </form>
 
-                <div style={{ marginTop: '2rem', fontSize: '0.8rem', color: '#94a3b8' }}>
+                <div className="mt-8 text-[0.8rem] text-slate-400 font-medium tracking-wide uppercase">
                     Authorized Personnel Only
                 </div>
             </div>
         </div>
     );
-};
-
-const labelStyle = {
-    display: 'block',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    color: '#334155',
-    marginBottom: '0.5rem'
-};
-
-const inputStyle = {
-    width: '100%',
-    padding: '0.75rem 1rem',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    fontSize: '1rem',
-    outline: 'none',
-    transition: 'all 0.2s',
-    boxSizing: 'border-box'
 };
 
 export default LoginPage;

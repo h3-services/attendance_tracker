@@ -1,32 +1,36 @@
 
 import logo from '../assets/logo.png';
+import { NavLink } from 'react-router-dom';
 
 const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Developer' }, onEditProfile }) => {
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             {/* Top Navigation Bar */}
             <header style={{
-                backgroundColor: 'var(--card-bg)',
-                borderBottom: '1px solid var(--border-color)',
-                padding: '1rem 2rem',
-                display: 'flex',
+                backgroundColor: 'transparent',
+                borderBottom: 'none',
+                padding: '0.75rem 1.5rem',
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: 'var(--shadow-sm)',
+                boxShadow: 'none',
                 position: 'sticky',
                 top: 0,
                 zIndex: 10
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <img src={logo} alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
-                    <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                        WorkTracker
-                    </h1>
+                </div>
+
+                {/* Center Title */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
+                    <NavLink to="/" end style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ fontFamily: "'Croissant One', serif", fontWeight: 700, fontSize: '1.5rem' }}>Hope3-Services</span>
+                    </NavLink>
                 </div>
 
                 <div
                     onClick={onEditProfile}
-                    style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', justifySelf: 'end' }}
                     title="Click to edit profile"
                 >
                     <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
@@ -56,10 +60,10 @@ const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Dev
                 width: '100%',
                 maxWidth: '1200px',
                 margin: '0 auto',
-                padding: '3rem 4rem', // INCREASED PADDING
+                padding: '1rem 2rem', // REDUCED
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '2.5rem'
+                gap: '1.2rem'
             }}>
                 {children}
             </main>

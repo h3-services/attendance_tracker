@@ -50,134 +50,125 @@ const AdminHistory = () => {
 
     return (
         <>
-            <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', background: '#ffffff', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
-                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>Progress Management</h2>
+            <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-[24px] border border-border-main shadow-sm">
+                <div className="p-6 flex justify-between items-center border-b border-border-main bg-white shrink-0">
+                    <h2 className="m-0 text-xl font-semibold text-text-main">Progress Management</h2>
 
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <Calendar size={18} style={{ position: 'absolute', left: 12, color: 'var(--text-secondary)' }} />
-                        <input
-                            type="date"
-                            value={historyFilterDate}
-                            onChange={(e) => setHistoryFilterDate(e.target.value)}
-                            style={{
-                                padding: '0.6rem 1rem 0.6rem 2.5rem',
-                                borderRadius: '2rem',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-color)',
-                                fontSize: '0.9rem',
-                                color: 'var(--text-primary)',
-                                outline: 'none',
-                                boxShadow: 'var(--shadow-sm)'
+                    <div className="flex gap-4 items-center">
+                        <div className="relative flex items-center">
+                            <Calendar size={18} className="absolute left-3 text-text-dim pointer-events-none" />
+                            <input
+                                type="date"
+                                value={historyFilterDate}
+                                onChange={(e) => setHistoryFilterDate(e.target.value)}
+                                className="bg-bg-main pl-10 pr-4 py-2 rounded-full border border-border-main text-[0.9rem] text-text-main outline-none focus:ring-1 focus:ring-primary shadow-sm appearance-none"
+                            />
+                        </div>
+                        {historyFilterDate && (
+                            <button
+                                onClick={() => setHistoryFilterDate('')}
+                                className="px-4 py-2 text-[0.85rem] font-semibold text-text-dim hover:text-text-main border border-border-main rounded-full bg-white transition-all cursor-pointer"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                </div>
+                <div className="flex-1 w-full overflow-hidden mt-0">
+                    <div className="ag-theme-alpine h-full w-full">
+                        <AgGridReact
+                            rowData={filteredHistory}
+                            columnDefs={[
+                                ...(!historyFilterDate ? [{
+                                    field: 'date',
+                                    headerName: 'Date',
+                                    flex: 1,
+                                    filter: false,
+                                    valueFormatter: (params) => {
+                                        if (!params.value) return '';
+                                        const date = new Date(params.value);
+                                        if (isNaN(date.getTime())) return params.value;
+                                        return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+                                    }
+                                }] : []),
+                                { field: 'userName', headerName: 'User', flex: 1, filter: false },
+                                {
+                                    field: 'sessionNo',
+                                    headerName: 'Session',
+                                    width: 100
+                                },
+                                { field: 'startTime', headerName: 'Start', width: 100 },
+                                { field: 'endTime', headerName: 'End', width: 100 },
+                                {
+                                    field: 'duration',
+                                    headerName: 'Duration',
+                                    width: 120,
+                                    cellStyle: { fontWeight: 600 },
+                                    valueFormatter: (params) => {
+                                        if (!params.value) return '';
+                                        const parts = String(params.value).split(':');
+                                        if (parts.length < 2) return params.value;
+                                        const h = parseInt(parts[0], 10);
+                                        const m = parseInt(parts[1], 10);
+                                        const s = parts[2] ? parseInt(parts[2], 10) : 0;
+
+                                        let result = [];
+                                        if (h > 0) result.push(`${h} hr`);
+                                        if (m > 0) result.push(`${m} min`);
+                                        if (s > 0) result.push(`${s} sec`);
+
+                                        return result.join(' ') || '0 sec';
+                                    }
+                                },
+                                { field: 'project', headerName: 'Project', width: 120 },
+                                { field: 'category', headerName: 'Category', width: 120 },
+                                {
+                                    field: 'workDescription',
+                                    headerName: 'Description',
+                                    width: 200,
+                                    tooltipField: 'workDescription',
+                                    cellRenderer: (params) => (
+                                        <span title={params.value}>
+                                            {params.value?.substring(0, 30)}{params.value?.length > 30 ? '...' : ''}
+                                        </span>
+                                    )
+                                },
+                                {
+                                    field: 'status',
+                                    headerName: 'Status',
+                                    width: 120,
+                                    cellRenderer: (params) => {
+                                        const isCompleted = params.value === 'Completed';
+                                        return (
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-[0.75rem] font-semibold leading-none
+                                                ${isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                {params.value}
+                                            </span>
+                                        );
+                                    }
+                                },
+                                { field: 'approvedState', headerName: 'Approved State', width: 140 }
+                            ]}
+                            defaultColDef={{
+                                sortable: true,
+                                resizable: true,
                             }}
+                            pagination={true}
+                            paginationPageSize={10}
+                            paginationPageSizeSelector={[10, 20, 50]}
+                            animateRows={true}
+                            rowHeight={70}
+                            theme="legacy"
+                            onGridReady={(params) => {
+                                params.api.sizeColumnsToFit();
+                                window.addEventListener('resize', () => {
+                                    setTimeout(() => params.api.sizeColumnsToFit(), 100);
+                                });
+                            }}
+                            overlayLoadingTemplate="<div class='loading-spinner'></div> Loading History..."
+                            overlayNoRowsTemplate="<span style='padding: 1rem;'>No history found</span>"
                         />
                     </div>
-                    {historyFilterDate && (
-                        <button
-                            onClick={() => setHistoryFilterDate('')}
-                            className="btn btn-ghost"
-                            style={{
-                                fontSize: '0.85rem',
-                                borderRadius: '2rem',
-                                padding: '0.4rem 1rem',
-                                border: '1px solid var(--border-color)'
-                            }}
-                        >
-                            Clear
-                        </button>
-                    )}
-                </div>
-            </div>
-            <div className="table-container" style={{ height: '100%', width: '100%', overflow: 'hidden', marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
-                <div className="ag-theme-alpine" style={{ height: '100%', width: '100%' }}>
-                    <AgGridReact
-                        rowData={filteredHistory}
-                        columnDefs={[
-                            ...(!historyFilterDate ? [{
-                                field: 'date',
-                                headerName: 'Date',
-                                flex: 1,
-                                filter: false,
-                                valueFormatter: (params) => {
-                                    if (!params.value) return '';
-                                    const date = new Date(params.value);
-                                    if (isNaN(date.getTime())) return params.value;
-                                    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-                                }
-                            }] : []),
-                            { field: 'userName', headerName: 'User', flex: 1, filter: false },
-                            {
-                                field: 'sessionNo',
-                                headerName: 'Session',
-                                width: 100
-                            },
-                            { field: 'startTime', headerName: 'Start', width: 100 },
-                            { field: 'endTime', headerName: 'End', width: 100 },
-                            {
-                                field: 'duration',
-                                headerName: 'Duration',
-                                width: 120,
-                                cellStyle: { fontWeight: 600 },
-                                valueFormatter: (params) => {
-                                    if (!params.value) return '';
-                                    const parts = String(params.value).split(':');
-                                    if (parts.length < 2) return params.value;
-                                    const h = parseInt(parts[0], 10);
-                                    const m = parseInt(parts[1], 10);
-                                    const s = parts[2] ? parseInt(parts[2], 10) : 0;
-
-                                    let result = [];
-                                    if (h > 0) result.push(`${h} hr`);
-                                    if (m > 0) result.push(`${m} min`);
-                                    if (s > 0) result.push(`${s} sec`);
-
-                                    return result.join(' ') || '0 sec';
-                                }
-                            },
-                            { field: 'project', headerName: 'Project', width: 120 },
-                            { field: 'category', headerName: 'Category', width: 120 },
-                            {
-                                field: 'workDescription',
-                                headerName: 'Description',
-                                width: 200,
-                                tooltipField: 'workDescription',
-                                cellRenderer: (params) => (
-                                    <span title={params.value}>
-                                        {params.value?.substring(0, 30)}{params.value?.length > 30 ? '...' : ''}
-                                    </span>
-                                )
-                            },
-                            {
-                                field: 'status',
-                                headerName: 'Status',
-                                width: 120,
-                                cellRenderer: (params) => (
-                                    <span className={`badge ${params.value === 'Completed' ? 'badge-success' : 'badge-pending'}`}>
-                                        {params.value}
-                                    </span>
-                                )
-                            },
-                            { field: 'approvedState', headerName: 'Approved State', width: 140 }
-                        ]}
-                        defaultColDef={{
-                            sortable: true,
-                            resizable: true,
-                        }}
-                        pagination={true}
-                        paginationPageSize={10}
-                        paginationPageSizeSelector={[10, 20, 50]}
-                        animateRows={true}
-                        rowHeight={60}
-                        theme="legacy"
-                        onGridReady={(params) => {
-                            params.api.sizeColumnsToFit();
-                            window.addEventListener('resize', () => {
-                                setTimeout(() => params.api.sizeColumnsToFit(), 100);
-                            });
-                        }}
-                        overlayLoadingTemplate="<div class='loading-spinner'></div> Loading History..."
-                        overlayNoRowsTemplate="<span style='padding: 1rem;'>No history found</span>"
-                    />
                 </div>
             </div>
         </>

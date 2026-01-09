@@ -834,16 +834,24 @@ const TrackerApp = () => {
     // FORCE ADMIN VIEW
     if (userRole?.toLowerCase() === 'admin') {
         return (
-            <Routes>
-                <Route path="/admin" element={<AdminLayout onLogout={() => setIsLogoutModalOpen(true)} />}>
-                    <Route index element={<AdminOverview />} />
-                    <Route path="requests" element={<AdminRequests />} />
-                    <Route path="users" element={<AdminUsers />} />
-                    <Route path="attendance" element={<AdminAttendance />} />
-                    <Route path="history" element={<AdminHistory />} />
-                </Route>
-                <Route path="*" element={<Navigate to="/admin" replace />} />
-            </Routes>
+            <>
+                <Routes>
+                    <Route path="/admin" element={<AdminLayout onLogout={() => setIsLogoutModalOpen(true)} />}>
+                        <Route index element={<AdminOverview />} />
+                        <Route path="requests" element={<AdminRequests />} />
+                        <Route path="users" element={<AdminUsers />} />
+                        <Route path="attendance" element={<AdminAttendance />} />
+                        <Route path="history" element={<AdminHistory />} />
+                    </Route>
+                    <Route path="*" element={<Navigate to="/admin" replace />} />
+                </Routes>
+
+                <LogoutConfirmationModal
+                    isOpen={isLogoutModalOpen}
+                    onClose={() => setIsLogoutModalOpen(false)}
+                    onConfirm={confirmLogout}
+                />
+            </>
         );
     }
 
@@ -855,7 +863,7 @@ const TrackerApp = () => {
         >
             <div className="fade-in-entry">
                 {/* Navigation / Header Area */}
-                <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ marginBottom: '0.8rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem' }}>
 
                     {/* Add Record Button (Visible on both Dashboard & History) */}
                     {/* Add Record Button Removed */}
@@ -889,7 +897,7 @@ const TrackerApp = () => {
                                 disabled={loading}
                                 style={{
                                     padding: '0.75rem 1rem',
-                                    backgroundColor: 'white',
+                                    backgroundColor: 'var(--card-bg)', // Centralized var
                                     color: 'var(--text-secondary)',
                                     borderRadius: '8px',
                                     border: '1px solid var(--border-color)',
@@ -901,7 +909,7 @@ const TrackerApp = () => {
                                     transition: 'all 0.2s'
                                 }}
                                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--card-bg)'}
                             >
                                 <span style={{ fontSize: '1.1rem', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
                                 {loading ? 'Syncing...' : 'Refresh'}
@@ -932,7 +940,7 @@ const TrackerApp = () => {
                             onClick={() => navigate('/')}
                             style={{
                                 padding: '0.75rem 1.5rem',
-                                backgroundColor: 'white',
+                                backgroundColor: 'var(--card-bg)',
                                 color: 'var(--text-primary)',
                                 borderRadius: '8px',
                                 border: '1px solid var(--border-color)',
@@ -950,7 +958,7 @@ const TrackerApp = () => {
 
                 <Routes>
                     <Route path="/" element={
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem', alignItems: 'stretch' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'stretch', padding: '1rem' }}>
                             <TimerCard
                                 activeSession={activeSession}
                                 onStart={handleStartWork}

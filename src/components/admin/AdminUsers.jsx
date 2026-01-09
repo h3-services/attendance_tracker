@@ -40,7 +40,6 @@ const AdminUsers = () => {
 
             setAddUserModalOpen(false);
             setNewUser({ name: '', email: '', password: '', role: 'user' });
-            alert('User created successfully!');
         } catch (error) {
             alert(`Failed to create user: ${error.message}`);
         } finally {
@@ -98,165 +97,141 @@ const AdminUsers = () => {
 
     return (
         <>
-            <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', background: '#ffffff', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
-                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>User Management</h2>
-                <button
-                    onClick={() => setAddUserModalOpen(true)}
-                    className="btn btn-primary"
-                    style={{
-                        padding: '0.6rem 1.25rem',
-                        fontSize: '0.95rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        boxShadow: 'var(--shadow-md)',
-                        borderRadius: '2rem'
-                    }}
-                >
-                    <Plus size={18} /> Add New User
-                </button>
-            </div>
-            <div className="table-container" style={{ height: '100%', width: '100%', overflow: 'hidden', marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
-                <div className="ag-theme-alpine" style={{ height: '100%', width: '100%' }}>
-                    <AgGridReact
-                        rowData={users}
-                        columnDefs={[
-                            { field: 'name', headerName: 'Name', flex: 1, filter: false },
-                            { field: 'email', headerName: 'Email', flex: 1.5, filter: false },
-                            {
-                                field: 'role',
-                                headerName: 'Role',
-                                width: 120,
-                                cellRenderer: (params) => (
-                                    <span className={`badge ${String(params.value).toLowerCase() === 'admin' ? 'badge-admin' : 'badge-user'}`}>
-                                        {params.value ? params.value.charAt(0).toUpperCase() + params.value.slice(1).toLowerCase() : ''}
-                                    </span>
-                                )
-                            },
-                            {
-                                field: 'createdAt',
-                                headerName: 'Joined',
-                                width: 150,
-                                valueFormatter: (params) => {
-                                    if (!params.value) return '';
-                                    const date = new Date(params.value);
-                                    if (isNaN(date.getTime())) return params.value; // Return original if invalid date
-                                    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+            <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-[24px] border border-border-main shadow-sm">
+                <div className="p-6 flex justify-between items-center border-b border-border-main bg-white shrink-0">
+                    <h2 className="m-0 text-xl font-semibold text-text-main">User Management</h2>
+                    <button
+                        onClick={() => setAddUserModalOpen(true)}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[0.95rem] font-semibold rounded-full shadow-md hover:bg-slate-800 transition-all cursor-pointer border-none"
+                    >
+                        <Plus size={18} /> Add New User
+                    </button>
+                </div>
+                <div className="flex-1 w-full overflow-hidden mt-0">
+                    <div className="ag-theme-alpine h-full w-full">
+                        <AgGridReact
+                            rowData={users}
+                            columnDefs={[
+                                { field: 'name', headerName: 'Name', flex: 1, filter: false },
+                                { field: 'email', headerName: 'Email', flex: 1.5, filter: false },
+                                {
+                                    field: 'role',
+                                    headerName: 'Role',
+                                    width: 120,
+                                    cellRenderer: (params) => {
+                                        const role = String(params.value).toLowerCase();
+                                        return (
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-[0.75rem] font-semibold leading-none
+                                                ${role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                {params.value ? params.value.charAt(0).toUpperCase() + params.value.slice(1).toLowerCase() : ''}
+                                            </span>
+                                        );
+                                    }
+                                },
+                                {
+                                    field: 'createdAt',
+                                    headerName: 'Joined',
+                                    width: 150,
+                                    valueFormatter: (params) => {
+                                        if (!params.value) return '';
+                                        const date = new Date(params.value);
+                                        if (isNaN(date.getTime())) return params.value;
+                                        return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+                                    }
+                                },
+                                {
+                                    headerName: 'Actions',
+                                    width: 120,
+                                    headerClass: 'ag-header-cell-center',
+                                    cellClass: 'ag-cell-center',
+                                    cellRenderer: (params) => (
+                                        <div className="flex gap-2 justify-center w-full">
+                                            <button
+                                                onClick={() => handleEditClick(params.data)}
+                                                title="Edit User"
+                                                className="w-8 h-8 rounded-full border-none flex items-center justify-center bg-blue-50 text-blue-600 transition-all duration-200 hover:bg-blue-100 cursor-pointer"
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClick(params.data.recordId)}
+                                                title="Delete User"
+                                                className="w-8 h-8 rounded-full border-none flex items-center justify-center bg-danger text-white transition-all duration-200 hover:bg-red-600 cursor-pointer"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    )
                                 }
-                            },
-                            {
-                                headerName: 'Actions',
-                                width: 120,
-                                headerClass: 'ag-header-cell-center',
-                                cellClass: 'ag-cell-center',
-                                cellRenderer: (params) => (
-                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', width: '100%' }}>
-                                        <button
-                                            onClick={() => handleEditClick(params.data)}
-                                            className="btn btn-ghost"
-                                            title="Edit User"
-                                            style={{
-                                                padding: 0,
-                                                width: '32px',
-                                                height: '32px',
-                                                borderRadius: '50%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: 'var(--primary-color)',
-                                                background: '#eff6ff'
-                                            }}
-                                        >
-                                            <Pencil size={16} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteClick(params.data.recordId)}
-                                            className="btn btn-danger"
-                                            title="Delete User"
-                                            style={{
-                                                padding: 0,
-                                                width: '32px',
-                                                height: '32px',
-                                                borderRadius: '50%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center'
-                                            }}
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                )
-                            }
-                        ]}
-                        defaultColDef={{
-                            sortable: true,
-                            resizable: true,
-                        }}
-                        pagination={true}
-                        paginationPageSize={10}
-                        paginationPageSizeSelector={[10, 20, 50]}
-                        animateRows={true}
-                        rowHeight={60}
-                        theme="legacy"
-                        onGridReady={(params) => {
-                            params.api.sizeColumnsToFit();
-                            window.addEventListener('resize', () => {
-                                setTimeout(() => params.api.sizeColumnsToFit(), 100);
-                            });
-                        }}
-                    />
+                            ]}
+                            defaultColDef={{
+                                sortable: true,
+                                resizable: true,
+                            }}
+                            pagination={true}
+                            paginationPageSize={10}
+                            paginationPageSizeSelector={[10, 20, 50]}
+                            animateRows={true}
+                            rowHeight={70}
+                            theme="legacy"
+                            onGridReady={(params) => {
+                                params.api.sizeColumnsToFit();
+                                window.addEventListener('resize', () => {
+                                    setTimeout(() => params.api.sizeColumnsToFit(), 100);
+                                });
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
 
             {/* Add User Modal */}
             {addUserModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Add New User</h2>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
+                    <div className="bg-white p-8 rounded-2xl w-full max-auto max-w-[450px] shadow-lg relative animate-in scale-in-95 duration-200">
+                        <h2 className="mt-0 mb-6 text-xl font-bold">Add New User</h2>
                         <form onSubmit={handleAddUser}>
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Name</label>
+                            <div className="mb-4">
+                                <label className="block mb-2 text-sm font-semibold">Name</label>
                                 <input
-                                    className="input-field"
                                     type="text" required
                                     value={newUser.name}
                                     onChange={e => setNewUser({ ...newUser, name: e.target.value })}
-                                    style={{ width: '93%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                                    className="w-full px-4 py-3 rounded-lg border border-border-main outline-none focus:border-primary transition-all"
                                 />
                             </div>
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Email</label>
+                            <div className="mb-4">
+                                <label className="block mb-2 text-sm font-semibold">Email</label>
                                 <input
                                     type="email" required
                                     value={newUser.email}
                                     onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                                    style={{ width: '93%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                                    className="w-full px-4 py-3 rounded-lg border border-border-main outline-none focus:border-primary transition-all"
                                 />
                             </div>
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Password</label>
+                            <div className="mb-4">
+                                <label className="block mb-2 text-sm font-semibold">Password</label>
                                 <input
                                     type="text" required
                                     value={newUser.password}
                                     onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                                    style={{ width: '93%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                                    className="w-full px-4 py-3 rounded-lg border border-border-main outline-none focus:border-primary transition-all"
                                 />
                             </div>
-                            <div style={{ marginBottom: '2rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Role</label>
+                            <div className="mb-8">
+                                <label className="block mb-2 text-sm font-semibold">Role</label>
                                 <select
                                     value={newUser.role}
                                     onChange={e => setNewUser({ ...newUser, role: e.target.value })}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                                    className="w-full px-4 py-3 rounded-lg border border-border-main outline-none focus:border-primary transition-all appearance-none bg-white"
                                 >
                                     <option value="user">User</option>
                                     <option value="admin">Admin</option>
                                 </select>
                             </div>
-                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                                <button type="button" onClick={() => setAddUserModalOpen(false)} className="btn btn-outline">Cancel</button>
-                                <button type="submit" disabled={newUserLoading} className="btn btn-primary">
+                            <div className="flex justify-end gap-3">
+                                <button type="button" onClick={() => setAddUserModalOpen(false)} className="px-4 py-2 rounded-lg font-semibold text-sm border border-border-main text-text-main hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer">Cancel</button>
+                                <button type="submit" disabled={newUserLoading} className="px-4 py-2 bg-primary text-white rounded-lg font-semibold text-sm hover:bg-slate-800 transition-all cursor-pointer">
                                     {newUserLoading ? 'Creating...' : 'Create User'}
                                 </button>
                             </div>
@@ -267,18 +242,18 @@ const AdminUsers = () => {
 
             {/* Delete Confirmation Modal */}
             {rejectModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ textAlign: 'center' }}>
-                        <div style={{ marginBottom: '1rem', color: 'var(--warning-color)', display: 'flex', justifyContent: 'center' }}>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
+                    <div className="bg-white p-8 rounded-2xl w-full max-auto max-w-[450px] shadow-lg relative animate-in scale-in-95 duration-200 text-center">
+                        <div className="mb-4 text-warning flex justify-center">
                             <ShieldCheck size={48} />
                         </div>
-                        <h2 style={{ marginTop: 0 }}>Confirm Deletion</h2>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                        <h2 className="mt-0 text-xl font-bold">Confirm Deletion</h2>
+                        <p className="text-text-dim mb-8">
                             Are you sure you want to delete this user? This action cannot be undone.
                         </p>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                            <button onClick={() => setRejectModalOpen(false)} className="btn btn-outline">Cancel</button>
-                            <button onClick={confirmDelete} disabled={deleting} className="btn btn-danger">
+                        <div className="flex justify-center gap-4">
+                            <button onClick={() => setRejectModalOpen(false)} className="px-4 py-2 rounded-lg font-semibold text-sm border border-border-main text-text-main hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer">Cancel</button>
+                            <button onClick={confirmDelete} disabled={deleting} className="px-4 py-2 bg-danger text-white rounded-lg font-semibold text-sm hover:bg-red-600 transition-all cursor-pointer">
                                 {deleting ? 'Deleting...' : 'Delete'}
                             </button>
                         </div>
@@ -288,53 +263,52 @@ const AdminUsers = () => {
 
             {/* Edit User Modal */}
             {editUserModalOpen && editingUser && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Edit User</h2>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
+                    <div className="bg-white p-8 rounded-2xl w-full max-auto max-w-[450px] shadow-lg relative animate-in scale-in-95 duration-200">
+                        <h2 className="mt-0 mb-6 text-xl font-bold">Edit User</h2>
                         <form onSubmit={handleUpdateUser}>
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Name</label>
+                            <div className="mb-4">
+                                <label className="block mb-2 text-sm font-semibold">Name</label>
                                 <input
-                                    className="input-field"
                                     type="text" required
                                     value={editingUser.name}
                                     onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
-                                    style={{ width: '93%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                                    className="w-full px-4 py-3 rounded-lg border border-border-main outline-none focus:border-primary transition-all"
                                 />
                             </div>
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Email</label>
+                            <div className="mb-4">
+                                <label className="block mb-2 text-sm font-semibold">Email</label>
                                 <input
                                     type="email" required
                                     value={editingUser.email}
                                     onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
-                                    style={{ width: '93%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                                    className="w-full px-4 py-3 rounded-lg border border-border-main outline-none focus:border-primary transition-all"
                                 />
                             </div>
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Password (New)</label>
+                            <div className="mb-4">
+                                <label className="block mb-2 text-sm font-semibold">Password (New)</label>
                                 <input
                                     type="text"
                                     placeholder="Leave blank to keep current"
                                     value={editingUser.password}
                                     onChange={e => setEditingUser({ ...editingUser, password: e.target.value })}
-                                    style={{ width: '93%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                                    className="w-full px-4 py-3 rounded-lg border border-border-main outline-none focus:border-primary transition-all"
                                 />
                             </div>
-                            <div style={{ marginBottom: '2rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Role</label>
+                            <div className="mb-8">
+                                <label className="block mb-2 text-sm font-semibold">Role</label>
                                 <select
                                     value={editingUser.role}
                                     onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                                    className="w-full px-4 py-3 rounded-lg border border-border-main outline-none focus:border-primary transition-all appearance-none bg-white"
                                 >
                                     <option value="user">User</option>
                                     <option value="admin">Admin</option>
                                 </select>
                             </div>
-                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                                <button type="button" onClick={() => setEditUserModalOpen(false)} className="btn btn-outline">Cancel</button>
-                                <button type="submit" disabled={updating} className="btn btn-primary">
+                            <div className="flex justify-end gap-3">
+                                <button type="button" onClick={() => setEditUserModalOpen(false)} className="px-4 py-2 rounded-lg font-semibold text-sm border border-border-main text-text-main hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer">Cancel</button>
+                                <button type="submit" disabled={updating} className="px-4 py-2 bg-primary text-white rounded-lg font-semibold text-sm hover:bg-slate-800 transition-all cursor-pointer">
                                     {updating ? 'Updating...' : 'Update User'}
                                 </button>
                             </div>

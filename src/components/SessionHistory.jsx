@@ -21,7 +21,7 @@ const SessionHistory = ({ sessions }) => {
             }}>
                 <div style={{
                     width: '64px', height: '64px', borderRadius: '50%',
-                    background: 'var(--bg-color)',
+                    background: 'white',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     marginBottom: '1rem'
                 }}>
@@ -57,7 +57,7 @@ const SessionHistory = ({ sessions }) => {
             <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
                     <thead>
-                        <tr style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)', textAlign: 'left' }}>
+                        <tr style={{ backgroundColor: 'white', color: 'var(--text-secondary)', textAlign: 'left' }}>
                             <th style={{ padding: '1rem', fontWeight: 600, width: '80px' }}>ID</th>
                             <th style={{ padding: '1rem', fontWeight: 600 }}>Date</th>
                             <th style={{ padding: '1rem', fontWeight: 600 }}>Session</th>

@@ -1,21 +1,35 @@
 
 import React from 'react';
 
-const WhiteFlipUnit = ({ value, label }) => (
+const DigitalUnit = ({ value, label }) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-        <div className="white-flip-container">
-            {/* The Clack Card */}
-            <div className="white-flip-card">
+        <div style={{
+            background: 'white',
+            border: '1px solid #e2e8f0', // Slate 200
+            borderRadius: '12px',
+            padding: '1rem 0.5rem',
+            minWidth: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+        }}>
+
+            <span style={{
+                fontSize: '2rem',
+                fontWeight: 700,
+                color: '#1e293b', // Dark Slate Text
+                fontFamily: "'Inter', sans-serif",
+                lineHeight: 1
+            }}>
                 {value.toString().padStart(2, '0')}
-            </div>
-            {/* The Mechanical Hinges */}
-            <div className="white-flip-hinge hinge-left"></div>
-            <div className="white-flip-hinge hinge-right"></div>
+            </span>
         </div>
         <span style={{
-            fontSize: '0.7rem',
+            fontSize: '0.75rem',
             fontWeight: 700,
-            color: 'var(--text-secondary)',
+            color: '#64748b',
             letterSpacing: '1px'
         }}>
             {label}
@@ -25,9 +39,7 @@ const WhiteFlipUnit = ({ value, label }) => (
 
 const StatsCard = ({ totalSeconds, sessionCount }) => {
     const formatTime = (totalSeconds) => {
-        // Prevent NaN
         if (isNaN(totalSeconds)) totalSeconds = 0;
-
         const h = Math.floor(totalSeconds / 3600);
         const m = Math.floor((totalSeconds % 3600) / 60);
         const s = Math.floor(totalSeconds % 60);
@@ -38,64 +50,66 @@ const StatsCard = ({ totalSeconds, sessionCount }) => {
 
     return (
         <div style={{
-            borderRadius: '16px',
-            padding: '2rem',
+            borderRadius: '24px',
+            padding: '1.5rem', // Reduced padding
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
+            alignItems: 'center',
             height: '100%',
             boxSizing: 'border-box',
             background: 'white',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--shadow-sm)',
-            position: 'relative'
+            border: '1px solid #e2e8f0', // Slate 200
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', // Stronger shadow
+            position: 'relative',
+            overflow: 'hidden'
         }}>
-
             {/* Header */}
             <h3 style={{
-                margin: '0 0 2rem 0',
+                margin: '0 0 1.5rem 0',
                 fontSize: '0.85rem',
-                color: 'var(--text-secondary)',
+                color: '#64748b', // Slate 500
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '2px',
                 fontWeight: 700,
                 textAlign: 'center'
             }}>
                 Daily Progress
             </h3>
 
-            {/* Flip Clock Display */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+            {/* Display Area */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.2rem' }}>
 
-                {/* Section Layout - Distinct from Time */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', marginRight: '0.5rem' }}>
+                {/* Section Indicator */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                     <div style={{
-                        width: '80px',
-                        height: '80px',
+                        width: '70px', // Reduced
+                        height: '70px', // Reduced
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-                        boxShadow: 'inset 0 2px 4px rgba(255,255,255,1), 0 4px 6px rgba(0,0,0,0.05)',
-                        border: '4px solid white',
+                        background: 'white',
+                        border: '1px solid #e2e8f0',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        position: 'relative'
+                        position: 'relative',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                     }}>
                         <div style={{
-                            position: 'absolute', inset: '4px', borderRadius: '50%',
-                            border: '1px dashed #cbd5e1'
+                            position: 'absolute', inset: '3px', borderRadius: '50%',
+                            border: '1px dashed #cbd5e1', // Slate 300
+                            opacity: 0.5
                         }}></div>
                         <span style={{
                             fontSize: '2rem',
                             fontWeight: 800,
-                            color: '#334155',
+                            color: '#1e293b', // Dark Slate
                             fontFamily: "'Inter', sans-serif"
                         }}>
                             {sessionCount}
                         </span>
                     </div>
                     <span style={{
-                        fontSize: '0.7rem',
+                        fontSize: '0.75rem',
                         fontWeight: 700,
                         color: '#64748b',
                         letterSpacing: '1px',
@@ -105,14 +119,17 @@ const StatsCard = ({ totalSeconds, sessionCount }) => {
                     </span>
                 </div>
 
-                {/* Divider - Vertical Line */}
-                <div style={{ width: '1px', height: '60px', background: '#e2e8f0', margin: '0 0.5rem 1.5rem 0.5rem' }}></div>
+                {/* Divider */}
+                <div style={{ width: '1px', height: '60px', background: '#f1f5f9', margin: '0 0.5rem' }}></div>
 
-                <WhiteFlipUnit value={h} label="HRS" />
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#cbd5e1', marginTop: '-1.5rem' }}>:</div>
-                <WhiteFlipUnit value={m} label="MIN" />
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#cbd5e1', marginTop: '-1.5rem' }}>:</div>
-                <WhiteFlipUnit value={s} label="SEC" />
+                {/* Time Units */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <DigitalUnit value={h} label="HRS" />
+                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#94a3b8', marginTop: '-1.5rem' }}>:</div>
+                    <DigitalUnit value={m} label="MIN" />
+                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#94a3b8', marginTop: '-1.5rem' }}>:</div>
+                    <DigitalUnit value={s} label="SEC" />
+                </div>
             </div>
 
         </div>

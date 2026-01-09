@@ -81,7 +81,7 @@ const AdminRequests = () => {
         {
             field: 'duration',
             headerName: 'Duration',
-            width: 230,
+            width: 160,
             valueFormatter: (params) => {
                 if (!params.value) return '';
                 const parts = String(params.value).split(':');
@@ -110,8 +110,7 @@ const AdminRequests = () => {
         },
         {
             headerName: 'Actions',
-            width: 150,
-            flex: 2,
+            width: 160,
             pinned: 'right',
             headerClass: 'ag-header-cell-center',
             cellClass: 'ag-cell-center',
@@ -120,41 +119,23 @@ const AdminRequests = () => {
                 const isApproving = approving === req.recordId;
 
                 return (
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', height: '100%', justifyContent: 'center', width: '100%' }}>
+                    <div className="flex gap-2 items-center h-full justify-center w-full">
                         <button
                             onClick={() => handleApprove(req)}
                             disabled={isApproving}
-                            className="btn btn-success"
                             title="Approve Request"
-                            style={{
-                                padding: 0,
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
+                            className="w-8 h-8 rounded-full border-none flex items-center justify-center bg-success text-white transition-all duration-200 hover:bg-emerald-600 cursor-pointer disabled:opacity-50"
                         >
                             {isApproving ? (
-                                <div className="loading-spinner" style={{ width: 14, height: 14, borderWidth: 2, borderColor: 'white', borderLeftColor: 'rgba(255,255,255,0.3)' }}></div>
+                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                             ) : (
                                 <Check size={16} />
                             )}
                         </button>
                         <button
                             onClick={() => handleRejectClick(req.recordId)}
-                            className="btn btn-danger"
                             title="Reject Request"
-                            style={{
-                                padding: 0,
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
+                            className="w-8 h-8 rounded-full border-none flex items-center justify-center bg-danger text-white transition-all duration-200 hover:bg-red-600 cursor-pointer"
                         >
                             <Trash2 size={16} />
                         </button>
@@ -174,52 +155,52 @@ const AdminRequests = () => {
         return <Loader3D />;
     }
 
-    if (requests.length === 0) {
-        return <div style={{ textAlign: 'center', padding: '2rem' }}>No requests found</div>;
-    }
+
 
     return (
         <>
-            <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', background: '#ffffff', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
-                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>Request Management</h2>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                    {requests.length} Pending Request{requests.length !== 1 ? 's' : ''}
+            <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-[24px] border border-border-main shadow-sm">
+                <div className="p-6 flex justify-between items-center border-b border-border-main bg-white shrink-0">
+                    <h2 className="m-0 text-xl font-semibold text-text-main">Request Management</h2>
+                    <div className="text-text-dim text-[0.9rem]">
+                        {requests.length} Pending Request{requests.length !== 1 ? 's' : ''}
+                    </div>
                 </div>
-            </div>
-            <div className="table-container" style={{ height: '100%', width: '100%', overflow: 'hidden', marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
-                <div className="ag-theme-alpine" style={{ height: '100%', width: '100%' }}>
-                    <AgGridReact
-                        rowData={requests}
-                        columnDefs={columnDefs}
-                        defaultColDef={defaultColDef}
-                        pagination={true}
-                        paginationPageSize={10}
-                        paginationPageSizeSelector={[10, 20, 50]}
-                        animateRows={true}
-                        rowHeight={60}
-                        theme="legacy"
-                        onGridReady={(params) => {
-                            params.api.sizeColumnsToFit();
-                            window.addEventListener('resize', () => {
-                                setTimeout(() => params.api.sizeColumnsToFit(), 100);
-                            });
-                        }}
-                        overlayNoRowsTemplate="<span style='padding: 1rem;'>No pending requests</span>"
-                    />
+                <div className="flex-1 w-full overflow-hidden mt-0">
+                    <div className="ag-theme-alpine h-full w-full">
+                        <AgGridReact
+                            rowData={requests}
+                            columnDefs={columnDefs}
+                            defaultColDef={defaultColDef}
+                            pagination={true}
+                            paginationPageSize={10}
+                            paginationPageSizeSelector={[10, 20, 50]}
+                            animateRows={true}
+                            rowHeight={70}
+                            theme="legacy"
+                            onGridReady={(params) => {
+                                params.api.sizeColumnsToFit();
+                                window.addEventListener('resize', () => {
+                                    setTimeout(() => params.api.sizeColumnsToFit(), 100);
+                                });
+                            }}
+                            overlayNoRowsTemplate="<span style='padding: 1rem;'>No pending requests</span>"
+                        />
+                    </div>
                 </div>
             </div>
 
             {/* Reject Modal */}
             {rejectModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ textAlign: 'center' }}>
-                        <h2 style={{ marginTop: 0 }}>Confirm Rejection</h2>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
+                    <div className="bg-white p-8 rounded-2xl w-full max-auto max-w-[450px] shadow-lg relative animate-in scale-in-95 duration-200 text-center">
+                        <h2 className="mt-0 text-xl font-bold">Confirm Rejection</h2>
+                        <p className="text-text-dim mb-8">
                             Are you sure you want to delete this request? This action cannot be undone.
                         </p>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                            <button onClick={() => setRejectModalOpen(false)} className="btn btn-outline">Cancel</button>
-                            <button onClick={confirmReject} disabled={rejecting} className="btn btn-danger">
+                        <div className="flex justify-center gap-4">
+                            <button onClick={() => setRejectModalOpen(false)} className="px-4 py-2 rounded-lg font-semibold text-sm border border-border-main text-text-main hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer">Cancel</button>
+                            <button onClick={confirmReject} disabled={rejecting} className="px-4 py-2 bg-danger text-white rounded-lg font-semibold text-sm hover:bg-red-600 transition-all cursor-pointer">
                                 {rejecting ? 'Deleting...' : 'Reject'}
                             </button>
                         </div>
