@@ -97,7 +97,7 @@ export const createRecord = async (data) => {
 
     const urlWithParams = `${API_URL}${API_URL.includes('?') ? '&' : '?'}${params.toString()}`;
 
-    console.log("Creating Record URL:", urlWithParams);
+
 
     const response = await fetch(urlWithParams, {
       method: "POST",
@@ -198,6 +198,17 @@ export const loginUser = async (email, password) => {
   });
 };
 
+export const updateUser = async (recordId, email, name, role, password) => {
+  return await authRequest({
+    action: 'update',
+    recordId,
+    email,
+    name,
+    role,
+    password
+  });
+};
+
 // Create record in Auth API (Requests sheet)
 // Create record in Auth API (Requests sheet)
 export const createAuthRecord = async (data) => {
@@ -213,7 +224,7 @@ export const createAuthRecord = async (data) => {
 
     const urlWithParams = `${AUTH_API_URL}${AUTH_API_URL.includes('?') ? '&' : '?'}${params.toString()}`;
 
-    console.log("Creating Auth Record URL:", urlWithParams);
+
 
     const response = await fetch(urlWithParams, {
       method: "POST",
@@ -248,7 +259,7 @@ export const deleteAuthRecord = async (recordId, sheetName = 'Requests') => {
 
     const urlWithParams = `${AUTH_API_URL}${AUTH_API_URL.includes('?') ? '&' : '?'}${params.toString()}`;
 
-    console.log("Deleting Auth Record URL:", urlWithParams);
+
 
     const response = await fetch(urlWithParams, {
       method: "POST", // Using POST for state-changing operations
@@ -375,6 +386,27 @@ export const syncApprovedRecords = async () => {
     };
   } catch (error) {
     console.error("Sync Error:", error);
+    throw error;
+  }
+};
+
+// Force update daily total in Auth Sheet (action: set_daily_total)
+export const updateDailyTotal = async (date, userName, totalDuration) => {
+  if (!AUTH_API_URL) throw new Error("Auth API URL not configured");
+
+  try {
+    const params = new URLSearchParams({
+      action: 'set_daily_total',
+      date,
+      userName,
+      totalDuration
+    });
+
+    const url = `${AUTH_API_URL}${AUTH_API_URL.includes('?') ? '&' : '?'}${params.toString()}`;
+    await fetch(url, { method: "POST" });
+    return { status: 'success', message: 'Daily total updated' };
+  } catch (error) {
+    console.error("Error setting daily total:", error);
     throw error;
   }
 };

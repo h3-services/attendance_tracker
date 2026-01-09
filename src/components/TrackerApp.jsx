@@ -1,18 +1,36 @@
 
+
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from './DashboardLayout';
+
 import TimerCard from './TimerCard';
 import HistoryGrid from './HistoryGrid';
 import EndSessionModal from './EndSessionModal';
 import EditSessionModal from './EditSessionModal';
 import StatsCard from './StatsCard';
-import { fetchData, createRecord, updateRecord, deleteRecord, syncApprovedRecords, createAuthRecord } from '../api';
+import {
+    fetchData,
+    createRecord,
+    updateRecord,
+    deleteRecord,
+    syncApprovedRecords,
+    createAuthRecord,
+    fetchAuthData,
+    deleteAuthRecord, // Import delete for requests
+    updateDailyTotal // Import the new force sync function
+} from '../api';
 import LoginPage from './LoginPage';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
 import CheckInModal from './CheckInModal';
-import AdminDashboard from './AdminDashboard';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+// import AdminDashboard from './AdminDashboard';
+import AdminLayout from "./admin/AdminLayout";
+import AdminOverview from "./admin/AdminOverview";
+import AdminRequests from "./admin/AdminRequests";
+import AdminUsers from "./admin/AdminUsers";
+import AdminAttendance from "./admin/AdminAttendance";
+import AdminHistory from "./admin/AdminHistory";
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 
 const TrackerApp = () => {
     const [loading, setLoading] = useState(true);
@@ -25,7 +43,7 @@ const TrackerApp = () => {
     // History Date Filter (default to today)
     const getTodayString = () => {
         const now = new Date();
-        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        return `${now.getFullYear()} -${String(now.getMonth() + 1).padStart(2, '0')} -${String(now.getDate()).padStart(2, '0')} `;
     };
     const [historyDate, setHistoryDate] = useState(getTodayString());
 
@@ -111,9 +129,9 @@ const TrackerApp = () => {
         const m = Math.floor((reminderInterval % 3600) / 60);
         const s = reminderInterval % 60;
         let timeText = '';
-        if (h > 0) timeText += `${h}h `;
-        if (m > 0) timeText += `${m}m `;
-        if (s > 0 || timeText === '') timeText += `${s}s`;
+        if (h > 0) timeText += `${h} h `;
+        if (m > 0) timeText += `${m} m `;
+        if (s > 0 || timeText === '') timeText += `${s} s`;
 
         if (Notification.permission === 'granted') {
             const n = new Notification("Still working?", {
@@ -165,6 +183,7 @@ const TrackerApp = () => {
     }, [userName, userRole]); // Reload if username or role changes
 
     // 2. Recalculate Stats when sessions change
+    // 2. Recalculate Stats & Auto-Sync when sessions change
     useEffect(() => {
         // Construct System Date "YYYY-MM-DD"
         const now = new Date();
@@ -197,7 +216,26 @@ const TrackerApp = () => {
             seconds: totalSec,
             count: todaySessions.length
         });
-    }, [sessions]);
+
+        // --- AUTO SYNC LOGIC ---
+        // Save to Local Storage & Sync to Sheet automatically
+        if (userName && !loading) {
+            const totalStr = formatDurationString(totalSec);
+
+            // 1. Save to Local Storage
+            localStorage.setItem('lastDailyTotal', totalStr);
+
+            // 2. Sync to Sheet (Debounced slightly by nature of effect or direct)
+            // We use a small timeout or just call it directly. 
+            // Note: This matches the user's request to "Save... before adding".
+            // To prevent spam on initial load if sessions are empty, we check count > 0 or accepted 0.
+            // Actually, syncing 0 is fine if it aligns with reality.
+
+            // We'll call the API fire-and-forget style
+            updateDailyTotal(todayStr, userName, totalStr).catch(e => console.error("Auto-Sync Failed", e));
+        }
+
+    }, [sessions, userName, loading]);
 
 
 
@@ -206,7 +244,7 @@ const TrackerApp = () => {
 
         setLoading(true);
         try {
-            console.log("Fetching All Data for:", { userName });
+
 
             // Fetch ALL sessions for the user (no date filter)
             const data = await fetchData({
@@ -219,7 +257,7 @@ const TrackerApp = () => {
                 return true;
             });
 
-            console.log("Sessions Loaded:", mySessions.length);
+
             setSessions(mySessions);
         } catch (e) {
             console.error("Failed to load", e);
@@ -355,7 +393,7 @@ const TrackerApp = () => {
             category: modalData.category,
             status: modalData.status || 'Completed',
             approvedState: modalData.approvedState || 'Pending',
-            approvedBy: ''
+            approvedBy: (modalData.approvedState === 'Completed' || modalData.approvedState === 'Approved') ? activeSession.userName : ''
         };
 
         setIsEndModalOpen(false);
@@ -363,7 +401,7 @@ const TrackerApp = () => {
         localStorage.removeItem('activeWorkSession');
 
         if (isOvernight) {
-            console.log("Overnight Session Detected! Splitting...");
+
 
             // --- Part 1: Start -> 23:59 (Start Date) ---
             // Calculate duration: Start -> 23:59:59
@@ -417,6 +455,9 @@ const TrackerApp = () => {
                 // Determine order? Usually FIFO or just parallel.
                 await createRecord(payload1);
                 await createRecord(payload2);
+                // Sync to Auth Sheet as well
+                await createAuthRecord(payload1);
+                await createAuthRecord(payload2);
                 loadData();
             } catch (e) {
                 console.error("Overnight Save Error", e);
@@ -458,6 +499,9 @@ const TrackerApp = () => {
 
             try {
                 const res = await createRecord(finalPayload);
+                // Sync to Auth Sheet as well
+                await createAuthRecord(finalPayload);
+
                 if (res && res.recordId) {
                     setSessions(prev => prev.map(s => s.recordId === tempId ? { ...s, recordId: res.recordId } : s));
                 }
@@ -513,6 +557,13 @@ const TrackerApp = () => {
     const handleUpdateConfirm = async (formData) => {
         // Distinguish Create vs Update
         const isNew = !formData.recordId;
+
+        // Auto-fill ApprovedBy if state is Approved/Completed
+        if (formData.approvedState === 'Approved' || formData.approvedState === 'Completed') {
+            if (!formData.approvedBy) {
+                formData.approvedBy = userName;
+            }
+        }
 
         // 1. Immediate UI Close
         setIsEditModalOpen(false);
@@ -694,7 +745,7 @@ const TrackerApp = () => {
             });
 
             if (updates.length > 0) {
-                console.log(`Background Renumbering ${updates.length} sessions...`);
+
                 await Promise.all(updates.map(u => updateRecord(u)));
             }
 
@@ -716,7 +767,7 @@ const TrackerApp = () => {
         localStorage.setItem('appUserRole', user.role || 'user');
 
         // Redirect admin users to admin dashboard
-        if (user.role === 'admin') {
+        if (user.role?.toLowerCase() === 'admin') {
             navigate('/admin');
         }
     };
@@ -752,19 +803,16 @@ const TrackerApp = () => {
 
 
 
+
+
     // 7. Prevent Accidental Exit
     useEffect(() => {
         const handleBeforeUnload = (e) => {
             if (activeSession && activeSession.status === 'In Progress') {
-                console.log("Preventing unload: Session is active");
                 e.preventDefault();
                 e.returnValue = 'You have an active session. Are you sure you want to leave?';
             }
         };
-
-        if (activeSession && activeSession.status === 'In Progress') {
-            console.log("Exit protection ENABLED for session:", activeSession.sessionNo);
-        }
 
         window.addEventListener('beforeunload', handleBeforeUnload);
 
@@ -781,20 +829,25 @@ const TrackerApp = () => {
         return <LoginPage onLogin={handleLogin} />;
     }
 
-    // If admin page, render AdminDashboard full screen (separate from DashboardLayout)
-    if (location.pathname === '/admin') {
+
+
+    // FORCE ADMIN VIEW
+    if (userRole?.toLowerCase() === 'admin') {
         return (
-            <>
-                <AdminDashboard onBack={() => navigate('/')} onLogout={confirmLogout} />
-                <LogoutConfirmationModal
-                    isOpen={isLogoutModalOpen}
-                    onClose={() => setIsLogoutModalOpen(false)}
-                    onConfirm={confirmLogout}
-                />
-            </>
+            <Routes>
+                <Route path="/admin" element={<AdminLayout onLogout={() => setIsLogoutModalOpen(true)} />}>
+                    <Route index element={<AdminOverview />} />
+                    <Route path="requests" element={<AdminRequests />} />
+                    <Route path="users" element={<AdminUsers />} />
+                    <Route path="attendance" element={<AdminAttendance />} />
+                    <Route path="history" element={<AdminHistory />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
         );
     }
 
+    // Standard User View
     return (
         <DashboardLayout
             userProfile={{ name: userName || 'Guest', role: userRole }}
@@ -853,6 +906,8 @@ const TrackerApp = () => {
                                 <span style={{ fontSize: '1.1rem', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
                                 {loading ? 'Syncing...' : 'Refresh'}
                             </button>
+
+
                             <button
                                 onClick={() => navigate('/history')}
                                 style={{
@@ -870,26 +925,6 @@ const TrackerApp = () => {
                                 }}
                             >
                                 <span>View History ➜</span>
-                            </button>
-
-                            <button
-                                onClick={() => navigate('/admin')}
-                                style={{
-                                    padding: '0.75rem 1.25rem',
-                                    backgroundColor: '#8b5cf6',
-                                    color: 'white',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    boxShadow: 'var(--shadow-md)'
-                                }}
-                            >
-                                <span>⚙️</span>
-                                Admin
                             </button>
                         </div>
                     ) : (
@@ -960,9 +995,7 @@ const TrackerApp = () => {
                             />
                         </div>
                     } />
-                    <Route path="/admin" element={
-                        <AdminDashboard onBack={() => navigate('/')} />
-                    } />
+
                 </Routes>
             </div>
 
@@ -1012,46 +1045,57 @@ const TrackerApp = () => {
 };
 
 // Helper to parse "1 hr 30 mins 20 sec"
+// Helper to parse "1 hr 30 mins", "00 HRS : 03 MIN : 20 SEC", etc.
 const parseDurationString = (input) => {
     if (!input) return 0;
-    // Force to string to prevent "match is not a function" error if input is a number/object
-    const str = String(input);
+    const str = String(input).toLowerCase();
+
+    // Pattern 1: HH:MM:SS text format with labels (e.g. "00 hrs : 03 min : 20 sec")
+    // Remove alphabets and split by colon if colon exists
+    if (str.includes(':') && (str.includes('hr') || str.includes('min') || str.includes('sec'))) {
+        const parts = str.replace(/[a-z]/g, '').split(':').map(s => parseInt(s.trim()) || 0);
+        if (parts.length === 3) {
+            return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+        }
+    }
 
     let sec = 0;
-    const h = str.match(/(\d+)\s*hr/);
-    const m = str.match(/(\d+)\s*mins?/);
-    const s = str.match(/(\d+)\s*sec/);
+    // Pattern 2: Explicit units naturally "1 hr 30 min"
+    // Match 'hr' or 'hrs' or 'hours'
+    const h = str.match(/(\d+)\s*(?:hr|hours|hrs)/);
+    // Match 'min' or 'mins'
+    const m = str.match(/(\d+)\s*(?:min|mins)/);
+    // Match 'sec' or 'secs' or 'seconds' or 'sec'
+    const s = str.match(/(\d+)\s*(?:sec|secs|seconds)/);
 
     if (h) sec += parseInt(h[1]) * 3600;
     if (m) sec += parseInt(m[1]) * 60;
     if (s) sec += parseInt(s[1]);
 
-    // Fallback: if no text match but it is a non-zero number, treat as minutes (legacy support)
-    // Only if sec is 0 and parseFloat works
+    // Fallback: plain number -> treat as SECONDS per modern app logic
     if (sec === 0) {
         const floatVal = parseFloat(str);
         if (!isNaN(floatVal) && floatVal > 0) {
-            sec = Math.floor(floatVal * 60);
+            sec = Math.floor(floatVal); // Treat legacy/plain numbers as seconds in frontend context
         }
     }
 
     return sec;
 };
 
-// Helper: "1 hr 30 mins 45 sec"
+// Helper: "00 HRS : 03 MIN : 20 SEC"
 const formatDurationString = (totalSeconds) => {
-    if (isNaN(totalSeconds) || totalSeconds < 0) return '0 sec';
+    if (isNaN(totalSeconds) || totalSeconds < 0) return '00 HRS : 00 MIN : 00 SEC';
 
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = Math.floor(totalSeconds % 60);
 
-    let parts = [];
-    if (h > 0) parts.push(`${h} hr`);
-    if (m > 0) parts.push(`${m} mins`);
-    if (s > 0 || parts.length === 0) parts.push(`${s} sec`);
+    const hh = h < 10 ? "0" + h : h;
+    const mm = m < 10 ? "0" + m : m;
+    const ss = s < 10 ? "0" + s : s;
 
-    return parts.join(' ');
+    return `${hh} HRS : ${mm} MIN : ${ss} SEC`;
 };
 
 export default TrackerApp;

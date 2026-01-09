@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 const calculateDuration = (start, end) => {
-    if (!start || !end) return '';
+    if (!start || !end) return '00 HRS : 00 MIN : 00 SEC';
     const today = new Date().toISOString().slice(0, 10);
     const startDate = new Date(`${today}T${start}:00`);
     const endDate = new Date(`${today}T${end}:00`);
@@ -11,16 +11,18 @@ const calculateDuration = (start, end) => {
         endDate.setDate(endDate.getDate() + 1);
     }
 
-    const diffSec = Math.floor((endDate - startDate) / 1000);
+    let diffSec = Math.floor((endDate - startDate) / 1000);
+    if (diffSec < 0) diffSec = 0;
+
     const h = Math.floor(diffSec / 3600);
     const m = Math.floor((diffSec % 3600) / 60);
+    const s = Math.floor(diffSec % 60);
 
-    let parts = [];
-    if (h > 0) parts.push(`${h} hr`);
-    if (m > 0) parts.push(`${m} mins`);
-    if (parts.length === 0) parts.push(`0 mins`);
+    const hh = h < 10 ? "0" + h : h;
+    const mm = m < 10 ? "0" + m : m;
+    const ss = s < 10 ? "0" + s : s;
 
-    return parts.join(' ');
+    return `${hh} HRS : ${mm} MIN : ${ss} SEC`;
 };
 
 const EditSessionModal = ({ isOpen, onClose, session, onSave, onDelete }) => {

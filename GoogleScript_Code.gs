@@ -137,10 +137,10 @@ function handleRequest(e) {
       if (!targetSheet) {
         targetSheet = ss.insertSheet(targetSheetName);
         // Requirement 5: Header structure consistent
-        targetSheet.appendRow(["ID", "Date", "User", "Session", "Start", "End", "Duration", "Description", "Project", "Category", "Status", "Approved State", "Approved By"]);
+        targetSheet.appendRow(["ID", "Date", "User", "Session", "Start", "End", "Duration", "Description", "Project", "Category", "Status", "Approved State"]);
         
         // Header Styling
-        var hRange = targetSheet.getRange(1, 1, 1, 13);
+        var hRange = targetSheet.getRange(1, 1, 1, 12);
         hRange.setFontWeight("bold")
                .setBackground("#f1f5f9")
                .setBorder(true, true, true, true, true, true)
@@ -163,7 +163,7 @@ function handleRequest(e) {
            var formattedTx = Utilities.formatDate(dateObj, Session.getScriptTimeZone(), "MMM d - EEEE");
            targetSheet.appendRow([formattedTx]);
            var sRow = targetSheet.getLastRow();
-           var rng = targetSheet.getRange(sRow, 1, 1, 13);
+           var rng = targetSheet.getRange(sRow, 1, 1, 12);
            rng.merge()
               .setBackground("#f1f5f9")
               .setFontColor("#1e293b")
@@ -186,15 +186,14 @@ function handleRequest(e) {
         requestData.project || '',
         requestData.category || '',
         requestData.status || 'Pending',
-        requestData.approvedState || 'Pending',
-        requestData.approvedBy || ''
+        requestData.approvedState || 'Pending'
       ];
 
       targetSheet.appendRow(newRow);
 
       // Row Formatting
       var lastRowIdx = targetSheet.getLastRow();
-      var range = targetSheet.getRange(lastRowIdx, 1, 1, 13);
+      var range = targetSheet.getRange(lastRowIdx, 1, 1, 12);
       range.setFontFamily("Arial")
            .setFontSize(10)
            .setHorizontalAlignment("center")
@@ -254,7 +253,6 @@ function handleRequest(e) {
       setCell(10, requestData.category);
       setCell(11, requestData.status);
       setCell(12, requestData.approvedState);
-      setCell(13, requestData.approvedBy);
 
       return responseJSON({ status: 'success', message: 'Record updated' });
     }

@@ -8,7 +8,6 @@
 // 4. Deploy > New Deployment > Web App.
 //    - Execute as: Me
 //    - Who has access: Anyone
-// 5. Copy the URL and add to your .env file as VITE_AUTH_API_URL
 // ==========================================
 
 function doGet(e) {
@@ -26,609 +25,453 @@ function handleRequest(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // Parse Request - Support both URL params and JSON body
     var requestData = {};
-    
-    // 1. Get URL parameters (works for both GET and POST)
     if (e && e.parameter && typeof e.parameter === 'object') {
-      for (var key in e.parameter) {
-        if (e.parameter.hasOwnProperty(key)) {
-          requestData[key] = e.parameter[key];
-        }
-      }
+      for (var key in e.parameter) requestData[key] = e.parameter[key];
     }
-    
-    // 2. Parse JSON body if present (for POST requests)
     if (e && e.postData && e.postData.contents) {
       try {
         var body = JSON.parse(e.postData.contents);
-        for (var key in body) {
-          if (body.hasOwnProperty(key)) {
-            requestData[key] = body[key];
-          }
-        }
-      } catch (jsonErr) {
-        // Not JSON, ignore
-      }
+        for (var key in body) requestData[key] = body[key];
+      } catch (jsonErr) {}
     }
 
-    // Default to 'read' if no action specified
     var action = requestData.action ? String(requestData.action).toLowerCase().trim() : 'read';
 
     // ==========================================
-    // ACTION: READ (Show all data from ALL sheets) - DEFAULT ACTION
+    // ACTION: READ
     // ==========================================
     if (action === 'read' || action === '') {
       var allSheets = ss.getSheets();
-      var result = {
-        sessions: [],
-        users: []
-      };
+      var result = { sessions: [], users: [], attendance: [] };
       
       for (var s = 0; s < allSheets.length; s++) {
         var currentSheet = allSheets[s];
         var sheetName = currentSheet.getName();
-        
-        // Skip utility/config sheets
         if (sheetName === 'Config' || sheetName === 'Settings' || sheetName === 'Template') continue;
         
         var data = currentSheet.getDataRange().getDisplayValues();
-        if (data.length < 2) continue; // Skip empty sheets
+        if (data.length < 2) continue; 
         
-        // Detect sheet type by header row
         var header = data[0];
-        var isUsersSheet = (header[0] && header[0].toString().toLowerCase() === 'email') || sheetName === 'Users';
-        
-        // Skip header row (index 0), loop through data rows
+        // Dynamic Column Detection
+        var userCol = -1, dateCol = -1, durCol = -1;
+        for(var h=0; h<header.length; h++) {
+          var hVal = String(header[h]).toLowerCase();
+          if(hVal === 'email' || hVal === 'user') userCol = h;
+          if(hVal === 'date' || hVal === 'n') dateCol = h;
+          if(hVal.includes('duration')) durCol = h;
+        }
+
+        var isUsersSheet = sheetName === 'Users';
+        var isAttendanceSheet = (sheetName.includes('20') && durCol !== -1); 
+
         for (var i = 1; i < data.length; i++) {
           var row = data[i];
-          
-          // Skip empty rows
-          if (!row[0] || row[0].toString().trim() === '') continue;
+          // Check for emptiness
+          var isEmpty = true;
+          for(var c=0; c<row.length; c++) { if(row[c]) { isEmpty=false; break; } }
+          if (isEmpty) continue;
           
           if (isUsersSheet) {
-            // Users sheet format: Email, Password, Name, Role, CreatedAt
-            result.users.push({
-              email: row[0],
-              password: row[1],
-              name: row[2],
-              role: row[3] || 'user',      // Column 4 is Role
-              createdAt: row[4],           // Column 5 is CreatedAt
-              recordId: row[0], // Use email as recordId for users
+             result.users.push({
+              email: row[0], password: row[1], name: row[2], role: row[3] || 'user', 
+              createdAt: row[4], recordId: row[0], _sheetName: sheetName
+            });
+          } else if (isAttendanceSheet && dateCol !== -1 && userCol !== -1 && durCol !== -1) {
+            result.attendance.push({
+              date: row[dateCol],
+              user: row[userCol],
+              totalDuration: row[durCol],
               _sheetName: sheetName
             });
           } else {
-            // Session sheet format - skip separator rows (non-numeric IDs)
-            if (isNaN(parseInt(row[0]))) continue;
-            
-            result.sessions.push({
-              recordId: row[0],
-              date: row[1],
-              userName: row[2],
-              sessionNo: row[3],
-              startTime: row[4],
-              endTime: row[5],
-              duration: row[6],
-              workDescription: row[7],
-              project: row[8],
-              category: row[9],
-              status: row[10],
-              approvedState: row[11],
-              approvedBy: row[12],
-              _sheetName: sheetName
-            });
+             // Requests/Sessions
+             var rid = parseInt(row[0]);
+             if (isNaN(rid)) continue;
+             
+             result.sessions.push({
+               recordId: row[0], date: row[1], userName: row[2], sessionNo: row[3],
+               startTime: row[4], endTime: row[5], duration: row[6],
+               workDescription: row[7], project: row[8], category: row[9],
+               status: row[10], approvedState: row[11], approvedBy: row[12],
+               _sheetName: sheetName
+             });
           }
         }
       }
-      
-      // Sort sessions by recordId descending (newest first)
-      result.sessions.sort(function(a, b) {
-        return parseInt(b.recordId) - parseInt(a.recordId);
-      });
-      
-      return responseJSON({
-        status: 'success',
-        totalSessions: result.sessions.length,
-        totalUsers: result.users.length,
-        sessions: result.sessions,
-        users: result.users
-      });
+      result.sessions.sort(function(a, b) { return parseInt(b.recordId) - parseInt(a.recordId); });
+      return responseJSON({ status: 'success', sessions: result.sessions, users: result.users, attendance: result.attendance });
     }
 
     // ==========================================
-    // ACTION: SYNC (Transfer approved records to main data script)
+    // ACTION: SYNC (Original Logic)
     // ==========================================
     if (action === 'sync') {
-      var targetUrl = requestData.targetUrl;
-      if (!targetUrl) {
-        return responseError('Missing targetUrl parameter. Pass the VITE_GOOGLE_SCRIPT_URL as targetUrl.');
-      }
-      
-      var allSheets = ss.getSheets();
-      var approvedRecords = [];
-      var syncedCount = 0;
-      var errors = [];
-      
-      // Find all approved records from all sheets (except Users)
-      for (var s = 0; s < allSheets.length; s++) {
-        var currentSheet = allSheets[s];
-        var sheetName = currentSheet.getName();
-        
-        // Skip utility and Users sheets
-        if (sheetName === 'Config' || sheetName === 'Settings' || sheetName === 'Template' || sheetName === 'Users') continue;
-        
-        var data = currentSheet.getDataRange().getDisplayValues();
-        if (data.length < 2) continue;
-        
-        for (var i = 1; i < data.length; i++) {
-          var row = data[i];
-          
-          // Skip empty rows or separator rows
-          if (!row[0] || isNaN(parseInt(row[0]))) continue;
-          
-          // Check if approvedState (column 11, index 11) is "Completed"
-          var approvedState = row[11] ? row[11].toString().trim() : '';
-          if (approvedState.toLowerCase() === 'completed') {
-            approvedRecords.push({
-              recordId: row[0],
-              date: row[1],
-              userName: row[2],
-              sessionNo: row[3],
-              startTime: row[4],
-              endTime: row[5],
-              duration: row[6],
-              workDescription: row[7],
-              project: row[8],
-              category: row[9],
-              status: row[10],
-              approvedState: row[11],
-              approvedBy: row[12],
-              _sourceSheet: sheetName
-            });
-          }
-        }
-      }
-      
-      // Send each approved record to the main data script
-      for (var r = 0; r < approvedRecords.length; r++) {
-        var record = approvedRecords[r];
-        try {
-          var params = 'action=create' +
-            '&date=' + encodeURIComponent(record.date) +
-            '&userName=' + encodeURIComponent(record.userName) +
-            '&sessionNo=' + encodeURIComponent(record.sessionNo) +
-            '&startTime=' + encodeURIComponent(record.startTime) +
-            '&endTime=' + encodeURIComponent(record.endTime) +
-            '&duration=' + encodeURIComponent(record.duration) +
-            '&workDescription=' + encodeURIComponent(record.workDescription) +
-            '&project=' + encodeURIComponent(record.project) +
-            '&category=' + encodeURIComponent(record.category) +
-            '&status=' + encodeURIComponent(record.status) +
-            '&approvedState=' + encodeURIComponent(record.approvedState) +
-            '&approvedBy=' + encodeURIComponent(record.approvedBy || '');
-          
-          var response = UrlFetchApp.fetch(targetUrl + '?' + params, {
-            method: 'POST',
-            muteHttpExceptions: true
-          });
-          
-          var responseText = response.getContentText();
-          var responseJson = JSON.parse(responseText);
-          
-          if (responseJson.status === 'success') {
-            syncedCount++;
-          } else {
-            errors.push('Record ' + record.recordId + ': ' + (responseJson.message || 'Unknown error'));
-          }
-        } catch (fetchErr) {
-          errors.push('Record ' + record.recordId + ': ' + fetchErr.toString());
-        }
-      }
-      
-      return responseJSON({
-        status: 'success',
-        message: 'Sync completed',
-        totalApproved: approvedRecords.length,
-        syncedCount: syncedCount,
-        errors: errors
-      });
+       var targetUrl = requestData.targetUrl;
+       if (!targetUrl) return responseError('Missing targetUrl');
+       var allSheets = ss.getSheets();
+       var approvedRecords = [];
+       var syncedCount = 0;
+       var errors = [];
+       for (var s = 0; s < allSheets.length; s++) {
+         var currentSheet = allSheets[s];
+         var sheetName = currentSheet.getName();
+         if (['Config','Settings','Template','Users'].indexOf(sheetName) !== -1) continue;
+         var data = currentSheet.getDataRange().getDisplayValues();
+         if (data.length < 2) continue;
+         for (var i = 1; i < data.length; i++) {
+           var row = data[i];
+           if (!row[0] || isNaN(parseInt(row[0]))) continue;
+           if (String(row[11]).toLowerCase() === 'completed') {
+             approvedRecords.push({
+               recordId: row[0], date: row[1], userName: row[2], sessionNo: row[3],
+               startTime: row[4], endTime: row[5], duration: row[6],
+               workDescription: row[7], project: row[8], category: row[9],
+               status: row[10], approvedState: row[11], approvedBy: row[12]
+             });
+           }
+         }
+       }
+       for (var r = 0; r < approvedRecords.length; r++) {
+         try {
+           var rec = approvedRecords[r];
+           var params = 'action=create&date=' + encodeURIComponent(rec.date) + 
+             '&userName=' + encodeURIComponent(rec.userName) + 
+             '&sessionNo=' + encodeURIComponent(rec.sessionNo) + 
+             '&startTime=' + encodeURIComponent(rec.startTime) +
+             '&endTime=' + encodeURIComponent(rec.endTime) +
+             '&duration=' + encodeURIComponent(rec.duration) +
+             '&workDescription=' + encodeURIComponent(rec.workDescription) +
+             '&project=' + encodeURIComponent(rec.project) +
+             '&category=' + encodeURIComponent(rec.category) +
+             '&status=' + encodeURIComponent(rec.status) +
+             '&approvedState=' + encodeURIComponent(rec.approvedState) +
+             '&approvedBy=' + encodeURIComponent(rec.approvedBy||'');
+           var resp = UrlFetchApp.fetch(targetUrl + '?' + params, {method:'POST',muteHttpExceptions:true});
+           if(JSON.parse(resp.getContentText()).status === 'success') syncedCount++;
+           else errors.push(rec.recordId + ': ' + JSON.parse(resp.getContentText()).message);
+         } catch(e) { errors.push(rec.recordId + ': ' + e.toString()); }
+       }
+       return responseJSON({status:'success', message:'Sync completed', count: syncedCount, errors: errors});
     }
 
     // ==========================================
-    // ACTION: CREATE (Add new session record to Requests sheet)
+    // ACTION: UPDATE (User)
     // ==========================================
-    if (action === 'create') {
-      var newDate = requestData.date;
-      if (!newDate) return responseError("Date is required");
-
-      // Ensure 'Requests' sheet exists
-      var requestsSheet = ss.getSheetByName('Requests');
-      if (!requestsSheet) {
-        requestsSheet = ss.insertSheet('Requests');
-        requestsSheet.appendRow(['ID', 'Date', 'User', 'Session', 'Start', 'End', 'Duration', 'Description', 'Project', 'Category', 'Status', 'Request Status', 'Approved By']);
-        requestsSheet.getRange(1, 1, 1, 13).setFontWeight('bold').setBackground('#f1f5f9');
-      }
-
-      // Generate unique ID (timestamp-based)
-      var newId = Date.now();
-
-      // Calculate session number for this date
-      var data = requestsSheet.getDataRange().getValues();
-      var maxSession = 0;
-      for (var i = 1; i < data.length; i++) {
-        if (data[i][1] === newDate && !isNaN(parseInt(data[i][3]))) {
-          var sNo = parseInt(data[i][3]);
-          if (sNo > maxSession) maxSession = sNo;
-        }
-      }
-      var sessionNo = requestData.sessionNo || (maxSession + 1).toString();
-
-      // Append new row
-      var newRow = [
-        newId,
-        requestData.date || '',
-        requestData.userName || '',
-        sessionNo,
-        requestData.startTime || '',
-        requestData.endTime || '',
-        requestData.duration || '',
-        requestData.workDescription || '',
-        requestData.project || '',
-        requestData.category || '',
-        requestData.status || 'Completed',
-        requestData.approvedState || 'Pending',
-        requestData.approvedBy || ''
-      ];
-
-      requestsSheet.appendRow(newRow);
-
-      return responseJSON({ 
-        status: 'success', 
-        message: 'Record created in Requests sheet', 
-        recordId: newId 
-      });
+    if(action === 'update') {
+       var recordId = requestData.recordId; 
+       if(!recordId) return responseError('Missing recordId');
+       
+       var usersSheet = ss.getSheetByName('Users');
+       if(!usersSheet) return responseError('Users sheet not found');
+       
+       var data = usersSheet.getDataRange().getValues();
+       var updated = false;
+       
+       for(var i=1; i<data.length; i++) {
+         // Assuming recordId is the original email/ID
+         if(String(data[i][0]) === String(recordId)) {
+            // Update fields if provided
+            if(requestData.email) usersSheet.getRange(i+1, 1).setValue(requestData.email);
+            // Only update password if it's not empty
+            if(requestData.password && requestData.password !== '') usersSheet.getRange(i+1, 2).setValue(requestData.password);
+            if(requestData.name) usersSheet.getRange(i+1, 3).setValue(requestData.name);
+            if(requestData.role) usersSheet.getRange(i+1, 4).setValue(requestData.role);
+            
+            updated = true;
+            break;
+         }
+       }
+       
+       if(updated) return responseJSON({status:'success', message:'User updated'});
+       return responseError('User not found');
     }
 
     // ==========================================
-    // ACTION: DELETE - Remove record from Requests sheet
+    // ACTION: DELETE
     // ==========================================
-    if (action === 'delete') {
+    if(action === 'delete') {
       var recordId = requestData.recordId;
       var sheetName = requestData.sheetName || 'Requests';
-      
-      if (!recordId) {
-        return responseError('Missing recordId parameter');
-      }
-      
       var sheet = ss.getSheetByName(sheetName);
-      if (!sheet) {
-        return responseError('Sheet not found: ' + sheetName);
-      }
-      
+      if(!sheet) return responseError('Sheet not found');
       var data = sheet.getDataRange().getValues();
       var deleted = false;
-      
-      // Find and delete the row with matching recordId (column A = index 0)
-      for (var i = data.length - 1; i >= 1; i--) {
-        if (String(data[i][0]) === String(recordId)) {
-          sheet.deleteRow(i + 1); // +1 because sheet rows are 1-indexed
+      for(var i=data.length-1; i>=1; i--) {
+        if(String(data[i][0]) === String(recordId)) {
+          sheet.deleteRow(i+1);
           deleted = true;
           break;
         }
       }
-      
-      if (deleted) {
-        return responseJSON({ 
-          status: 'success', 
-          message: 'Record deleted successfully',
-          recordId: recordId
-        });
-      } else {
-        return responseError('Record not found: ' + recordId);
-      }
+      return deleted ? responseJSON({status:'success'}) : responseError('Not found');
     }
 
     // ==========================================
     // ACTION: REGISTER
     // ==========================================
-    if (action === 'register') {
-      var email = requestData.email;
-      var password = requestData.password;
-      var name = requestData.name;
-      var role = requestData.role || 'user'; // Default role is 'user'
-
-      if (!email || !password || !name) {
-        return responseError('Missing fields: email, password, and name are required');
-      }
-
-      // Ensure 'Users' sheet exists with Role column
-      var usersSheet = ss.getSheetByName('Users');
-      if (!usersSheet) {
-        usersSheet = ss.insertSheet('Users');
-        usersSheet.appendRow(['Email', 'Password', 'Name', 'Role', 'CreatedAt']);
-        usersSheet.getRange(1, 1, 1, 5).setFontWeight('bold');
-      }
-
-      // Check Duplicates
-      var data = usersSheet.getDataRange().getValues();
-      for (var i = 1; i < data.length; i++) {
-        if (String(data[i][0]).toLowerCase() === String(email).toLowerCase()) {
-          return responseError('Email already registered');
-        }
-      }
-
-      usersSheet.appendRow([email, password, name, role, new Date()]);
-      
-      return responseJSON({ 
-        status: 'success', 
-        message: 'User registered successfully', 
-        user: { name: name, email: email, role: role } 
-      });
+    if(action === 'register') {
+       var usersSheet = ss.getSheetByName('Users');
+       if (!usersSheet) { usersSheet = ss.insertSheet('Users'); usersSheet.appendRow(['Email', 'Password', 'Name', 'Role', 'CreatedAt']); }
+       // Check duplicate
+       var data = usersSheet.getDataRange().getValues();
+       for(var i=1; i<data.length; i++) { if(String(data[i][0]).toLowerCase() === String(requestData.email).toLowerCase()) return responseError('Email exists'); }
+       usersSheet.appendRow([requestData.email, requestData.password, requestData.name, requestData.role||'user', new Date()]);
+       return responseJSON({status:'success'});
     }
 
     // ==========================================
     // ACTION: LOGIN
     // ==========================================
-    if (action === 'login') {
-      var email = requestData.email;
-      var password = requestData.password;
+    if(action === 'login') {
+       var usersSheet = ss.getSheetByName('Users');
+       if(!usersSheet) return responseError('No users');
+       var data = usersSheet.getDataRange().getValues();
+       for(var i=1; i<data.length; i++) {
+         if(String(data[i][0]).toLowerCase() === String(requestData.email).toLowerCase() && String(data[i][1]) === String(requestData.password)) {
+           return responseJSON({status:'success', user:{name:data[i][2], email:data[i][0], role:data[i][3]}});
+         }
+       }
+       return responseError('Invalid credentials');
+    }
 
-      if (!email || !password) {
-        return responseError('Missing credentials: email and password are required');
+    // ==========================================
+    // SHARED HELPER: FIND OR CREATE DAILY ROW
+    // ==========================================
+    // Returns { sheet, idx, currentTotalStr }
+    function findDailyRow(dateStr, userName) {
+      // 1. Determine Sheet Name
+      var parts = dateStr.split('-');
+      // Assumption: dateStr is YYYY-MM-DD
+      var year = parseInt(parts[0]);
+      var month = parseInt(parts[1]); 
+      var day = parseInt(parts[2]);
+      
+      var dateObj = new Date(year, month - 1, day);
+      var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      var sheetName = monthNames[dateObj.getMonth()] + " " + dateObj.getFullYear();
+      
+      var targetSheet = ss.getSheetByName(sheetName);
+      if (!targetSheet) {
+        targetSheet = ss.insertSheet(sheetName);
+        targetSheet.appendRow(["Date", "User", "Total Duration"]);
+        targetSheet.getRange(1,1,1,3).setFontWeight("bold").setBackground("#e2e8f0");
       }
+      
+      var lastRow = targetSheet.getLastRow();
+      // Heuristic Cols
+      var dCol = 1, uCol = 2, tCol = 3; 
 
-      // Ensure 'Users' sheet exists
-      var usersSheet = ss.getSheetByName('Users');
-      if (!usersSheet) {
-        return responseError('No users registered yet');
-      }
+      // Search & Gap Filling
+      var foundIdx = -1;
+      var firstEmptyIdx = -1;
+      var currentTotal = "00 HRS : 00 MIN : 00 SEC";
+      
+      if(lastRow > 1) {
+        // Read A, B, C
+        var data = targetSheet.getRange(2, 1, lastRow-1, 3).getValues();
+        var timeZone = ss.getSpreadsheetTimeZone();
+        
+        for(var i=0; i<data.length; i++) {
+          var rowDateVal = data[i][0];
+          var rowUserVal = data[i][1];
+          var rowDurVal = data[i][2];
+          
+          // Track First Empty Row to avoid skipping
+          var isEmpty = (rowDateVal === "" && rowUserVal === "");
+          if (isEmpty && firstEmptyIdx === -1) {
+             firstEmptyIdx = i + 2; // +2 offset (Header=1, i=0 is Row 2)
+          }
 
-      // Robust Input Processing
-      var inputEmail = String(email).trim().toLowerCase();
-      var inputPass = String(password).trim();
-
-      var data = usersSheet.getDataRange().getValues();
-      var emailFound = false;
-
-      for (var i = 1; i < data.length; i++) {
-        var sheetEmail = String(data[i][0]).trim().toLowerCase();
-        var sheetPass = String(data[i][1]).trim();
-
-        if (sheetEmail === inputEmail) {
-          emailFound = true;
-          if (sheetPass === inputPass) {
-            return responseJSON({ 
-              status: 'success', 
-              message: 'Login successful', 
-              user: { 
-                name: data[i][2], 
-                email: data[i][0],
-                role: data[i][3] || 'user' // Return role (column 4)
-              } 
-            });
+          // KEY FIX: Use Utilities.formatDate to strictly match YYYY-MM-DD
+          var rowDateStr = "";
+          if (rowDateVal instanceof Date) {
+            rowDateStr = Utilities.formatDate(rowDateVal, timeZone, "yyyy-MM-dd");
+          } else {
+            rowDateStr = String(rowDateVal).trim();
+          }
+          
+          if (!isEmpty && rowDateStr === dateStr && String(rowUserVal) === String(userName)) {
+            foundIdx = i + 2; // +2 offset
+            currentTotal = rowDurVal;
+            break;
           }
         }
       }
-
-      if (emailFound) {
-        return responseError('Incorrect password');
-      } else {
-        return responseError('User not found');
-      }
+      
+      // If we found empty rows but NO existing record, we should use the first empty row
+      // BUT ONLY if we are planning to overwrite/create new.
+      // We return both indices.
+      
+      return { sheet: targetSheet, idx: foundIdx, emptyIdx: firstEmptyIdx, currentTotalStr: currentTotal, dateCol: dCol, userCol: uCol, durCol: tCol };
     }
 
-    
+
     // ==========================================
-    // ACTION: CREATE (Session Record)
+    // ACTION: SET_DAILY_TOTAL (Force)
+    // ==========================================
+    if (action === 'set_daily_total') {
+       var info = findDailyRow(requestData.date, requestData.userName);
+       if (info.idx !== -1) {
+         info.sheet.getRange(info.idx, info.durCol).setValue(requestData.totalDuration);
+       } else if (info.emptyIdx !== -1) {
+         info.sheet.getRange(info.emptyIdx, 1).setValue(requestData.date);
+         info.sheet.getRange(info.emptyIdx, 2).setValue(requestData.userName);
+         info.sheet.getRange(info.emptyIdx, 3).setValue(requestData.totalDuration);
+        } else {
+          // --- Date Separator Logic (Summary Sheet) ---
+          var lastRow = info.sheet.getLastRow();
+          var shouldAddSeparator = false;
+          
+          if (lastRow > 1) {
+             // Header is row 1. Data starts row 2.
+             // Check last Date (Column A is index 0 in values)
+             var lastRowVals = info.sheet.getRange(lastRow, 1, 1, 1).getDisplayValues()[0];
+             var lastDate = lastRowVals[0];
+             if (lastDate !== requestData.date) shouldAddSeparator = true;
+          } else {
+             shouldAddSeparator = true; 
+          }
+
+          if (shouldAddSeparator) {
+               var p = requestData.date.split('-');
+               var dObj = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+               var formattedTx = Utilities.formatDate(dObj, ss.getSpreadsheetTimeZone(), "MMM d - EEEE");
+               
+               info.sheet.appendRow([formattedTx]);
+               var sRow = info.sheet.getLastRow();
+               var rng = info.sheet.getRange(sRow, 1, 1, 3); // Merge A, B, C (3 cols)
+               rng.merge()
+                  .setBackground("#f1f5f9")
+                  .setFontColor("#1e293b")
+                  .setFontWeight("bold")
+                  .setFontSize(12) 
+                  .setHorizontalAlignment("center")
+                  .setVerticalAlignment("middle");
+          }
+          // -------------------------------------------
+          info.sheet.appendRow([requestData.date, requestData.userName, requestData.totalDuration]);
+        }
+       return responseJSON({status:'success', message:'Updated'});
+    }
+
+    // ==========================================
+    // ACTION: CREATE (Incremental)
     // ==========================================
     if (action === 'create') {
-      var newDate = requestData.date; // e.g. "2026-02-01"
-      if (!newDate) return responseError("Date is required");
+        // 1. Requests
+        var reqSheet = ss.getSheetByName('Requests');
+        if(!reqSheet) { reqSheet=ss.insertSheet('Requests'); reqSheet.appendRow(['ID','Date','User', 'Session', 'Start','End','Duration','Description','Project','Category','Status','ReqStatus','ApprovedBy']); }
 
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-      // A. Global ID Generation (Scan all sheets to find max ID)
-      var allSheets = ss.getSheets();
-      var maxId = 0;
-      for (var s = 0; s < allSheets.length; s++) {
-        var d = allSheets[s].getDataRange().getValues();
-        for (var r = 1; r < d.length; r++) {
-          var pid = parseInt(d[r][0]); // Column A
-          if (!isNaN(pid) && pid > maxId) maxId = pid;
+        // --- Date Separator Logic ---
+        var lastRow = reqSheet.getLastRow();
+        var shouldAddSeparator = false;
+        if (lastRow > 1) {
+           // Check last record's date (Col B is index 1, but getDisplayValues is 0-indexed array)
+           // We only read the last row to save time
+           var lastRowVals = reqSheet.getRange(lastRow, 1, 1, 2).getDisplayValues()[0]; 
+           var lastDate = lastRowVals[1]; // Column B
+           if (lastDate !== requestData.date) shouldAddSeparator = true;
+        } else {
+           shouldAddSeparator = true; // First data row
         }
-      }
-      var newId = maxId + 1;
 
-      // B. Determine Target Sheet Name "Month YYYY"
-      var parts = newDate.split('-');
-      var dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-      var targetSheetName = monthNames[dateObj.getMonth()] + " " + dateObj.getFullYear(); 
+        if (shouldAddSeparator) {
+             // Parse YYYY-MM-DD to Date Obj for formatting
+             var p = requestData.date.split('-');
+             var dObj = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+             var formattedTx = Utilities.formatDate(dObj, ss.getSpreadsheetTimeZone(), "MMM d - EEEE");
+             
+             reqSheet.appendRow([formattedTx]);
+             var sRow = reqSheet.getLastRow();
+             // Merge 13 Columns (A-M) matching header width
+             var rng = reqSheet.getRange(sRow, 1, 1, 13); 
+             rng.merge()
+                .setBackground("#f1f5f9")
+                .setFontColor("#1e293b")
+                .setFontWeight("bold")
+                .setFontSize(14) // Slightly smaller than monthly sheet (20) which is huge, sticking to readable
+                .setHorizontalAlignment("center")
+                .setVerticalAlignment("middle");
+        }
+        // -----------------------------
+        reqSheet.appendRow([
+          Date.now(), 
+          requestData.date, 
+          requestData.userName, 
+          requestData.sessionNo||'1', 
+          requestData.startTime, 
+          requestData.endTime, 
+          requestData.duration, 
+          requestData.workDescription, 
+          requestData.project, 
+          requestData.category, 
+          requestData.status || 'Completed', 
+          requestData.approvedState || 'Pending', 
+          requestData.approvedBy || ''
+        ]);
 
-      // C. Check Exists OR Create
-      var targetSheet = ss.getSheetByName(targetSheetName);
-      if (!targetSheet) {
-        targetSheet = ss.insertSheet(targetSheetName);
-        targetSheet.appendRow(["ID", "Date", "User", "Session", "Start", "End", "Duration", "Description", "Project", "Category", "Status", "Approved State", "Approved By"]);
-        var hRange = targetSheet.getRange(1, 1, 1, 13);
-        hRange.setFontWeight("bold").setBackground("#f1f5f9").setBorder(true, true, true, true, true, true).setHorizontalAlignment("center");
-      }
-
-      // D. Date Separator Logic
-      var lastRow = targetSheet.getLastRow();
-      var shouldAddSeparator = false;
-      if (lastRow > 1) {
-         var lastRowVals = targetSheet.getRange(lastRow, 1, 1, 2).getDisplayValues()[0]; 
-         var lastDate = lastRowVals[1];
-         if (lastDate !== newDate) shouldAddSeparator = true;
-      } else {
-         shouldAddSeparator = true; 
-      }
-
-      if (shouldAddSeparator) {
-           var formattedTx = Utilities.formatDate(dateObj, Session.getScriptTimeZone(), "MMM d - EEEE");
-           targetSheet.appendRow([formattedTx]);
-           var sRow = targetSheet.getLastRow();
-           var rng = targetSheet.getRange(sRow, 1, 1, 13);
-           rng.merge().setBackground("#f1f5f9").setFontColor("#1e293b").setFontWeight("bold").setFontSize(20).setHorizontalAlignment("center").setVerticalAlignment("middle");
-      }
-
-      // E. Append Data
-      var newRow = [
-        newId,
-        requestData.date || '',
-        requestData.userName || '',
-        requestData.sessionNo || '',
-        requestData.startTime || '',
-        requestData.endTime || '',
-        requestData.duration || '',
-        requestData.workDescription || '',
-        requestData.project || '',
-        requestData.category || '',
-        requestData.status || 'Pending',
-        requestData.approvedState || 'Pending',
-        requestData.approvedBy || ''
-      ];
-      targetSheet.appendRow(newRow);
-
-      // Row Formatting
-      var lastRowIdx = targetSheet.getLastRow();
-      var range = targetSheet.getRange(lastRowIdx, 1, 1, 13);
-      range.setFontFamily("Arial").setFontSize(10).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
-
-      // F. Update Daily Summary (Columns O-Q)
-      try {
-        updateDailySummary(ss, requestData.date, requestData.userName, requestData.duration);
-      } catch (e) {
-        console.error("Summary Update Failed: " + e.toString());
-      }
-
-      return responseJSON({ status: 'success', message: 'Record created in ' + targetSheetName, recordId: newId });
+        // 2. Attendance (Increment)
+        var info = findDailyRow(requestData.date, requestData.userName);
+        var durToAdd = parseDurationToSeconds(requestData.duration);
+        
+        if (durToAdd > 0) {
+            if (info.idx !== -1) {
+               var currentSec = parseDurationToSeconds(info.currentTotalStr);
+               var newTotal = currentSec + durToAdd;
+               info.sheet.getRange(info.idx, info.durCol).setValue(formatDuration(newTotal));
+            } else if (info.emptyIdx !== -1) {
+               info.sheet.getRange(info.emptyIdx, 1).setValue(requestData.date);
+               info.sheet.getRange(info.emptyIdx, 2).setValue(requestData.userName);
+               info.sheet.getRange(info.emptyIdx, 3).setValue(formatDuration(durToAdd));
+            } else {
+               info.sheet.appendRow([requestData.date, requestData.userName, formatDuration(durToAdd)]);
+            }
+        }
+        return responseJSON({status:'success', message:'Created'});
     }
 
-    // ==========================================
-    // DEFAULT: STATUS (No action or unknown action)
-    // ==========================================
-    // Count users for status
-    var userCount = 0;
-    var usersSheet = ss.getSheetByName('Users');
-    if (usersSheet) {
-      userCount = Math.max(0, usersSheet.getLastRow() - 1);
-    }
-    
-    return responseJSON({ 
-      status: 'success', 
-      message: 'Auth API is running. Use ?action=read to see all users.',
-      timestamp: new Date().toISOString(),
-      totalUsers: userCount,
-      receivedAction: action || '(none)',
-      availableActions: ['login', 'register', 'read', 'create']
-    });
+    return responseJSON({status:'success', message:'Auth API Ready'});
 
-  } catch (err) {
-    return responseError('Server Error: ' + err.toString());
-  } finally {
-    lock.releaseLock();
-  }
+  } catch (err) { return responseError(err.toString()); }
+  finally { lock.releaseLock(); }
 }
 
-// Helper: Aggregates daily duration (Cols O-Q)
-function updateDailySummary(ss, dateStr, userName, durationStr) {
-  if (!dateStr || !userName || !durationStr) return;
-
-  // Parse Date for Sheet Name
-  var parts = dateStr.split('-'); 
-  var dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-  var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  var sheetName = monthNames[dateObj.getMonth()] + " " + dateObj.getFullYear(); 
-
-  var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) return;
-
-  var startCol = 15; // Column O
-  
-  // Ensure Headers
-  var headerRange = sheet.getRange(1, startCol, 1, 3);
-  if (headerRange.getValue() !== "Summary Date") {
-    headerRange.setValues([["Summary Date", "User", "Total Mins"]]);
-    headerRange.setFontWeight("bold").setBackground("#e2e8f0").setBorder(true, true, true, true, true, true);
-  }
-
-  var durationToAdd = parseDurationToMinutes(durationStr);
-  if (durationToAdd === 0) return;
-
-  var maxRows = sheet.getMaxRows();
-  var summaryData = sheet.getRange(2, startCol, maxRows - 1, 3).getValues(); 
-  
-  var targetRowIndex = -1;
-  var firstEmptyRowIndex = -1;
-
-  for (var i = 0; i < summaryData.length; i++) {
-    var sDate = summaryData[i][0];
-    var sUser = summaryData[i][1];
-    
-    if (!sDate && !sUser && firstEmptyRowIndex === -1) {
-      firstEmptyRowIndex = i;
-    }
-    if (!sDate && !sUser) break; 
-
-    var sDateStr = sDate instanceof Date ? 
-       Utilities.formatDate(sDate, Session.getScriptTimeZone(), "yyyy-MM-dd") : sDate;
-
-    if (sDateStr === dateStr && sUser === userName) {
-      targetRowIndex = i;
-      break;
-    }
-  }
-
-  if (targetRowIndex !== -1) {
-    // Update existing
-    var existingVal = summaryData[targetRowIndex][2];
-    var currentTotal = parseDurationToMinutes(existingVal);
-    var newTotal = currentTotal + durationToAdd;
-    var formattedTotal = formatDuration(newTotal);
-    sheet.getRange(targetRowIndex + 2, startCol + 2).setValue(formattedTotal);
-  } else {
-    // Append New
-    if (firstEmptyRowIndex === -1) firstEmptyRowIndex = summaryData.length; 
-    var rowToWrite = firstEmptyRowIndex + 2;
-    sheet.getRange(rowToWrite, startCol).setValue(dateStr);
-    sheet.getRange(rowToWrite, startCol + 1).setValue(userName);
-    sheet.getRange(rowToWrite, startCol + 2).setValue(formatDuration(durationToAdd));
-    
-    sheet.getRange(rowToWrite, startCol, 1, 3)
-         .setHorizontalAlignment("center")
-         .setBorder(null, true, null, true, null, null);
-  }
-}
-
-// Helper: 1 hr 30 min -> 90
-function parseDurationToMinutes(val) {
+function parseDurationToSeconds(val) {
   if (!val) return 0;
   if (typeof val === 'number') return val;
   var str = val.toString().toLowerCase();
-  var total = 0;
-  var hoursMatch = str.match(/(\d+)\s*hr/);
-  if (hoursMatch) total += parseInt(hoursMatch[1]) * 60;
-  var minsMatch = str.match(/(\d+)\s*min/);
-  if (minsMatch) total += parseInt(minsMatch[1]);
-  if (total === 0 && !isNaN(parseInt(str))) total = parseInt(str);
-  return total;
+  
+  // Clean special chars
+  if (str.includes(':')) {
+     var p = str.replace(/[a-z]/g, '').split(':').map(function(s){ return parseInt(s.trim())||0 });
+     if(p.length===3) return p[0]*3600 + p[1]*60 + p[2];
+     if(p.length===2) return p[0]*60 + p[1];
+  }
+  
+  // Natural
+  var t=0;
+  var h=str.match(/(\d+)\s*hr/); if(h) t+=parseInt(h[1])*3600;
+  var m=str.match(/(\d+)\s*min/); if(m) t+=parseInt(m[1])*60;
+  var s=str.match(/(\d+)\s*sec/); if(s) t+=parseInt(s[1]);
+  if(t>0) return t;
+  
+  // Legacy Number
+  if(!isNaN(parseInt(str))) return parseInt(str)*60;
+  return 0;
 }
 
-// Helper: 90 -> 1 hr 30 min
-function formatDuration(totalMins) {
-  var h = Math.floor(totalMins / 60);
-  var m = totalMins % 60;
-  if (h > 0 && m > 0) return h + " hr " + m + " min";
-  if (h > 0) return h + " hr";
-  return m + " min";
+function formatDuration(sec) {
+  if(isNaN(sec) || sec<0) sec=0;
+  var h=Math.floor(sec/3600);
+  var m=Math.floor((sec%3600)/60);
+  var s=Math.floor(sec%60);
+  var hh=h<10?'0'+h:h;
+  var mm=m<10?'0'+m:m;
+  var ss=s<10?'0'+s:s;
+  return hh+" HRS : "+mm+" MIN : "+ss+" SEC";
 }
 
-function responseJSON(data) {
-  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
-}
-
-function responseError(msg) {
-  return responseJSON({ status: 'error', message: msg });
-}
+function responseJSON(d) { return ContentService.createTextOutput(JSON.stringify(d)).setMimeType(ContentService.MimeType.JSON); }
+function responseError(m) { return responseJSON({status:'error', message:m}); }

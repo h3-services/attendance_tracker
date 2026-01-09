@@ -22,6 +22,8 @@ const LoginPage = ({ onLogin }) => {
         setLoading(true);
 
         try {
+
+
             // Login Action Only
             const result = await loginUser(email, password);
 
@@ -29,7 +31,8 @@ const LoginPage = ({ onLogin }) => {
                 // Login successful
                 onLogin({
                     name: result.user.name,
-                    email: result.user.email
+                    email: result.user.email,
+                    role: result.user.role // Added Role
                 });
             } else {
                 setError(result?.message || 'Authentication failed');
