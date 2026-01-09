@@ -137,10 +137,10 @@ function handleRequest(e) {
       if (!targetSheet) {
         targetSheet = ss.insertSheet(targetSheetName);
         // Requirement 5: Header structure consistent
-        targetSheet.appendRow(["ID", "Date", "User", "Session", "Start", "End", "Duration", "Description", "Project", "Category", "Status", "Approved State"]);
+        targetSheet.appendRow(["ID", "Date", "User", "Session", "Start", "End", "Duration", "Description", "Project", "Category", "Status", "Approved State", "Location"]);
         
         // Header Styling
-        var hRange = targetSheet.getRange(1, 1, 1, 12);
+        var hRange = targetSheet.getRange(1, 1, 1, 13);
         hRange.setFontWeight("bold")
                .setBackground("#f1f5f9")
                .setBorder(true, true, true, true, true, true)
@@ -163,7 +163,7 @@ function handleRequest(e) {
            var formattedTx = Utilities.formatDate(dateObj, Session.getScriptTimeZone(), "MMM d - EEEE");
            targetSheet.appendRow([formattedTx]);
            var sRow = targetSheet.getLastRow();
-           var rng = targetSheet.getRange(sRow, 1, 1, 12);
+           var rng = targetSheet.getRange(sRow, 1, 1, 13);
            rng.merge()
               .setBackground("#f1f5f9")
               .setFontColor("#1e293b")
@@ -186,26 +186,27 @@ function handleRequest(e) {
         requestData.project || '',
         requestData.category || '',
         requestData.status || 'Pending',
-        requestData.approvedState || 'Pending'
+        requestData.approvedState || 'Pending',
+        requestData.location || ''
       ];
 
       targetSheet.appendRow(newRow);
 
       // Row Formatting
       var lastRowIdx = targetSheet.getLastRow();
-      var range = targetSheet.getRange(lastRowIdx, 1, 1, 12);
+      var range = targetSheet.getRange(lastRowIdx, 1, 1, 13);
       range.setFontFamily("Arial")
            .setFontSize(10)
            .setHorizontalAlignment("center")
            .setVerticalAlignment("middle")
            .setWrap(true);
 
-      // Update Daily Summary
-      try {
-        updateDailySummary(ss, requestData.date, requestData.userName, requestData.duration);
-      } catch (e) {
-        console.error("Summary Update Failed: " + e.toString());
-      }
+      // Daily Summary disabled - no longer storing separate totals table
+      // try {
+      //   updateDailySummary(ss, requestData.date, requestData.userName, requestData.duration);
+      // } catch (e) {
+      //   console.error("Summary Update Failed: " + e.toString());
+      // }
 
       return responseJSON({ status: 'success', message: 'Record created in ' + targetSheetName, recordId: newId });
     }

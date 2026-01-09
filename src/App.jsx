@@ -6,7 +6,7 @@ import { BrowserRouter } from 'react-router-dom';
 function App() {
   return (
     <div className="App">
-      <BrowserRouter>
+      <BrowserRouter basename="/attendance_tracker">
         <TrackerApp />
       </BrowserRouter>
     </div>

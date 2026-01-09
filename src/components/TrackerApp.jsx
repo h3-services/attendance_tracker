@@ -8,6 +8,7 @@ import HistoryGrid from './HistoryGrid';
 import EndSessionModal from './EndSessionModal';
 import EditSessionModal from './EditSessionModal';
 import StatsCard from './StatsCard';
+import { getLocationString } from '../utils/geolocation';
 import {
     fetchData,
     createRecord,
@@ -273,6 +274,15 @@ const TrackerApp = () => {
             return;
         }
 
+        // Get user's location (mandatory)
+        let userLocation = '';
+        try {
+            userLocation = await getLocationString();
+        } catch (locError) {
+            alert('Location is required! ' + locError.message);
+            return; // Block session start if location denied
+        }
+
         const now = new Date();
         const start = customStartTime || now;
 
@@ -307,7 +317,8 @@ const TrackerApp = () => {
             totalPausedSeconds: 0,
             lastPauseTime: null,
             lastReminderTime: start.toISOString(), // Initialize reminder baseline
-            reminderInterval: reminderInterval // Store preference in session for persistence if needed, but we use local state for now
+            reminderInterval: reminderInterval, // Store preference in session for persistence if needed, but we use local state for now
+            location: userLocation // Store captured location
         };
 
 
@@ -393,7 +404,8 @@ const TrackerApp = () => {
             category: modalData.category,
             status: modalData.status || 'Completed',
             approvedState: modalData.approvedState || 'Pending',
-            approvedBy: (modalData.approvedState === 'Completed' || modalData.approvedState === 'Approved') ? activeSession.userName : ''
+            approvedBy: (modalData.approvedState === 'Completed' || modalData.approvedState === 'Approved') ? activeSession.userName : '',
+            location: activeSession.location || '' // Include captured location
         };
 
         setIsEndModalOpen(false);
@@ -998,6 +1010,7 @@ const TrackerApp = () => {
                                 historyDate={historyDate}
                                 setHistoryDate={setHistoryDate}
                                 onBack={() => navigate('/')}
+                                loading={loading}
                             />
                         </div>
                     } />

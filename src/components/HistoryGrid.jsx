@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { Calendar } from 'lucide-react';
+import Loader3D from './common/Loader3D';
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -109,7 +110,7 @@ const ActionMenu = ({ data, onEdit, onDelete }) => {
     );
 };
 
-const HistoryGrid = ({ sessions, onEdit, onDelete, historyDate, setHistoryDate, onBack }) => {
+const HistoryGrid = ({ sessions, onEdit, onDelete, historyDate, setHistoryDate, onBack, loading }) => {
 
     // Process Data: Sort by Date Desc + Insert Header Rows
     const rowData = useMemo(() => {
@@ -328,6 +329,15 @@ const HistoryGrid = ({ sessions, onEdit, onDelete, historyDate, setHistoryDate, 
     }), []);
 
     // Empty State (optional to handle inside grid, but we'll leave it simple for now)
+
+    // Show loading animation
+    if (loading) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-[24px] border border-border-main shadow-sm" style={{ height: 'calc(100vh - 120px)', marginTop: '-1rem' }}>
+                <Loader3D />
+            </div>
+        );
+    }
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-[24px] border border-border-main shadow-sm" style={{ height: 'calc(100vh - 120px)', marginTop: '-1rem' }}>
