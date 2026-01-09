@@ -1,0 +1,265 @@
+.outer-container {
+    display: flex;
+    min-height: 100%;
+    flex: 1 1 0%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.step-circle-container {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 42rem;
+    border-radius: 1.5rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+
+.step-indicator-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    padding: 2rem 2rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.step-content-default {
+    position: relative;
+    overflow: hidden;
+}
+
+.step-default {
+    padding: 1.5rem 2rem 1rem;
+}
+
+.step-default h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.75rem;
+}
+
+.step-default p {
+    color: #64748b;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.step-default ol {
+    list-style: decimal inside;
+    color: #475569;
+    line-height: 1.8;
+}
+
+.step-default ol li {
+    margin-bottom: 0.5rem;
+}
+
+.step-default .tip-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #fefce8;
+    border: 1px solid #fef08a;
+    border-radius: 0.75rem;
+    color: #854d0e;
+    font-size: 0.9rem;
+}
+
+.step-default .success-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 0.75rem;
+    color: #166534;
+    font-size: 0.9rem;
+}
+
+.step-default .info-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.75rem;
+    color: #1e40af;
+    font-size: 0.9rem;
+}
+
+.step-default .code-block {
+    margin-top: 1rem;
+    background: #0f172a;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.step-default .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+}
+
+.step-default .code-lang {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.step-default .copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    background: #334155;
+    border: none;
+    border-radius: 0.5rem;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.step-default .copy-btn:hover {
+    background: #475569;
+}
+
+.step-default pre {
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    color: #e2e8f0;
+    max-height: 200px;
+}
+
+.footer-container {
+    padding: 0 2rem 2rem;
+}
+
+.footer-nav {
+    margin-top: 1rem;
+    display: flex;
+    padding-top: 1.5rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.footer-nav.spread {
+    justify-content: space-between;
+}
+
+.footer-nav.end {
+    justify-content: flex-end;
+}
+
+.back-button {
+    transition: all 250ms;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1.25rem;
+    color: #64748b;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+}
+
+.back-button:hover {
+    color: #0f172a;
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.back-button.inactive {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.next-button {
+    transition: all 250ms;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #fff;
+    font-weight: 600;
+    padding: 0.625rem 1.5rem;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+.next-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35);
+}
+
+.next-button:active {
+    transform: translateY(0);
+}
+
+.step-indicator {
+    position: relative;
+    cursor: pointer;
+    outline: none;
+}
+
+.step-indicator-inner {
+    display: flex;
+    height: 2.5rem;
+    width: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    font-weight: 600;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.step-indicator:hover .step-indicator-inner {
+    border-color: #cbd5e1;
+}
+
+.active-dot {
+    height: 0.625rem;
+    width: 0.625rem;
+    border-radius: 9999px;
+    background-color: #fff;
+}
+
+.step-number {
+    font-size: 0.875rem;
+}
+
+.step-connector {
+    position: relative;
+    margin-left: 0.75rem;
+    margin-right: 0.75rem;
+    height: 3px;
+    flex: 1;
+    overflow: hidden;
+    border-radius: 0.25rem;
+    background-color: #e2e8f0;
+}
+
+.step-connector-inner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+}
+
+.check-icon {
+    height: 1.125rem;
+    width: 1.125rem;
+    color: #fff;
+}

@@ -432,6 +432,63 @@ function handleRequest(e) {
         return responseJSON({status:'success', message:'Created'});
     }
 
+    // ==========================================
+    // INITIALIZE ACTION (Auto-Setup)
+    // ==========================================
+    if (action === 'initialize') {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var created = [];
+      
+      // 1. Create Users sheet
+      var usersSheet = ss.getSheetByName('Users');
+      if (!usersSheet) {
+        usersSheet = ss.insertSheet('Users');
+        usersSheet.appendRow(['Email', 'Password', 'Name', 'Role', 'CreatedAt']);
+        
+        // Style headers
+        var uRange = usersSheet.getRange(1, 1, 1, 5);
+        uRange.setFontWeight("bold")
+              .setBackground("#e2e8f0")
+              .setBorder(true, true, true, true, true, true)
+              .setHorizontalAlignment("center");
+              
+        // Add sample admin (user should update this)
+        usersSheet.appendRow(['admin@company.com', 'admin123', 'Admin User', 'admin', new Date()]);
+        
+        // Set column widths
+        usersSheet.setColumnWidth(1, 200);  // Email
+        usersSheet.setColumnWidth(2, 120);  // Password
+        usersSheet.setColumnWidth(3, 150);  // Name
+        usersSheet.setColumnWidth(4, 80);   // Role
+        usersSheet.setColumnWidth(5, 150);  // CreatedAt
+        
+        created.push('Users');
+      }
+      
+      // 2. Create Requests sheet
+      var reqSheet = ss.getSheetByName('Requests');
+      if (!reqSheet) {
+        reqSheet = ss.insertSheet('Requests');
+        reqSheet.appendRow(['ID', 'Date', 'User', 'Session', 'Start', 'End', 'Duration', 'Description', 'Project', 'Category', 'Status', 'ReqStatus', 'ApprovedBy']);
+        
+        // Style headers
+        var rRange = reqSheet.getRange(1, 1, 1, 13);
+        rRange.setFontWeight("bold")
+              .setBackground("#f1f5f9")
+              .setBorder(true, true, true, true, true, true)
+              .setHorizontalAlignment("center");
+              
+        created.push('Requests');
+      }
+      
+      return responseJSON({ 
+        status: 'success', 
+        message: 'Auth sheets initialized', 
+        created: created,
+        defaultAdmin: 'admin@company.com / admin123'
+      });
+    }
+
     return responseJSON({status:'success', message:'Auth API Ready'});
 
   } catch (err) { return responseError(err.toString()); }

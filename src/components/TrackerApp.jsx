@@ -21,6 +21,7 @@ import {
     updateDailyTotal // Import the new force sync function
 } from '../api';
 import LoginPage from './LoginPage';
+import SetupPage from './SetupPage';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
 import CheckInModal from './CheckInModal';
@@ -835,6 +836,11 @@ const TrackerApp = () => {
 
     const navigate = useNavigate();
     const location = useLocation();
+
+    // If on /setup route, show setup page (before login check)
+    if (location.pathname === '/setup') {
+        return <SetupPage />;
+    }
 
     // If not logged in, show Login Page
     if (!userName) {

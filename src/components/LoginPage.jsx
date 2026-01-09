@@ -99,9 +99,33 @@ const LoginPage = ({ onLogin }) => {
                     </button>
                 </form>
 
-                <div className="mt-8 text-[0.8rem] text-slate-400 font-medium tracking-wide uppercase">
+                <div className="mt-6 text-[0.8rem] text-slate-400 font-medium tracking-wide uppercase">
                     Authorized Personnel Only
                 </div>
+            </div>
+
+            {/* Setup Instructions Button - Modern Glass Design */}
+            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+                <a
+                    href="/attendance_tracker/setup"
+                    className="group flex items-center gap-3 px-5 py-3 
+                               bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900
+                               rounded-xl shadow-2xl shadow-slate-900/30
+                               text-white text-sm font-medium
+                               hover:shadow-slate-900/50 hover:scale-[1.02]
+                               transition-all duration-300 ease-out
+                               border border-slate-700/50"
+                    style={{ backdropFilter: 'blur(12px)' }}
+                >
+                    <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-lg">
+                        ⚡
+                    </span>
+                    <div className="flex flex-col">
+                        <span className="text-white/90 font-semibold">New here?</span>
+                        <span className="text-white/60 text-xs">Click for setup guide</span>
+                    </div>
+                    <span className="ml-2 text-white/40 group-hover:text-white/80 group-hover:translate-x-1 transition-all">→</span>
+                </a>
             </div>
         </div>
     );

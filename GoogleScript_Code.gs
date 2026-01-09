@@ -289,6 +289,44 @@ function handleRequest(e) {
       return responseJSON({ status: 'success', message: 'Record deleted' });
     }
 
+    // ==========================================
+    // INITIALIZE ACTION (Auto-Setup)
+    // ==========================================
+    if (action === 'initialize') {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var now = new Date();
+      var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      var sheetName = monthNames[now.getMonth()] + " " + now.getFullYear();
+      
+      // Check if sheet exists
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) {
+        sheet = ss.insertSheet(sheetName);
+        // Add headers
+        sheet.appendRow(["ID", "Date", "User", "Session", "Start", "End", "Duration", "Description", "Project", "Category", "Status", "Approved State", "Location"]);
+        
+        // Style headers
+        var hRange = sheet.getRange(1, 1, 1, 13);
+        hRange.setFontWeight("bold")
+              .setBackground("#f1f5f9")
+              .setBorder(true, true, true, true, true, true)
+              .setHorizontalAlignment("center");
+              
+        // Set column widths
+        sheet.setColumnWidth(1, 50);   // ID
+        sheet.setColumnWidth(2, 100);  // Date
+        sheet.setColumnWidth(3, 120);  // User
+        sheet.setColumnWidth(7, 100);  // Duration
+        sheet.setColumnWidth(8, 250);  // Description
+      }
+      
+      return responseJSON({ 
+        status: 'success', 
+        message: 'Attendance sheet initialized', 
+        sheetName: sheetName 
+      });
+    }
+
     return responseError('Invalid Action');
 
   } catch (err) {

@@ -120,7 +120,9 @@ const AdminLayout = ({ onLogout }) => {
                 {/* Center: Title (Clickable Dashboard Link) */}
                 <div className="flex items-center gap-4 justify-center whitespace-nowrap">
                     <NavLink to="/admin" end className="no-underline text-inherit flex items-center">
-                        <span className="font-['Croissant_One'] font-bold text-2xl">Hope3-Services</span>
+                        <span className="font-['Croissant_One'] font-bold text-2xl">
+                            {localStorage.getItem('appCompanyName') || 'Hope3-Services'}
+                        </span>
                     </NavLink>
                 </div>
 

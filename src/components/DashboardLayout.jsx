@@ -24,7 +24,9 @@ const DashboardLayout = ({ children, userProfile = { name: 'Jeevith', role: 'Dev
                 {/* Center Title */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
                     <NavLink to="/" end style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ fontFamily: "'Croissant One', serif", fontWeight: 700, fontSize: '2.5rem' }}>Hope3-Services</span>
+                        <span style={{ fontFamily: "'Croissant One', serif", fontWeight: 700, fontSize: '2.5rem' }}>
+                            {localStorage.getItem('appCompanyName') || 'Hope3-Services'}
+                        </span>
                     </NavLink>
                 </div>
 

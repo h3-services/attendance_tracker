@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+// Use .env value, or fallback to localStorage (set during setup wizard)
+const API_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || localStorage.getItem('userApiUrl');
 
 const handleResponse = async (response) => {
   const text = await response.text();
@@ -153,7 +154,7 @@ export const deleteRecord = async (id) => {
 // AUTHENTICATION API
 // ==========================================
 // Consolidated: Auth now lives in the main script
-const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL;
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || localStorage.getItem('userAuthUrl');
 
 // Consolidated: Auth now lives in the main script
 const authRequest = async (data) => {
@@ -161,13 +162,39 @@ const authRequest = async (data) => {
     throw new Error("Auth API URL not configured. Please deploy the Auth Script and update .env");
   }
 
+  console.log('🔐 Auth Request:', data.action, 'to', AUTH_API_URL);
+
   try {
+    // Use GET with query params for login/read actions (avoids CORS issues)
+    if (data.action === 'login' || data.action === 'read') {
+      const params = new URLSearchParams(data).toString();
+      const url = `${AUTH_API_URL}?${params}`;
+      console.log('🔐 Auth GET URL:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow'
+      });
+      const text = await response.text();
+      console.log('🔐 Auth Response:', text);
+      const json = JSON.parse(text);
+
+      if (json.status === 'error') {
+        throw new Error(json.message);
+      }
+
+      return json;
+    }
+
+    // POST for write operations
     const response = await fetch(AUTH_API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      redirect: 'follow'
     });
     const text = await response.text();
+    console.log('🔐 Auth Response:', text);
     const json = JSON.parse(text);
 
     if (json.status === 'error') {
@@ -285,23 +312,7 @@ export const deleteAuthRecord = async (recordId, sheetName = 'Requests') => {
 
 // Fetch all data from Auth API
 export const fetchAuthData = async () => {
-  if (!AUTH_API_URL) {
-    throw new Error("Auth API URL not configured");
-  }
-
-  try {
-    const response = await fetch(AUTH_API_URL);
-    const text = await response.text();
-    const json = JSON.parse(text);
-
-    if (json.status === 'error') {
-      throw new Error(json.message);
-    }
-    return json;
-  } catch (error) {
-    console.error("Fetch Auth Data Error:", error);
-    throw error;
-  }
+  return await authRequest({ action: 'read' });
 };
 
 // Sync approved records from Auth API to main data script
